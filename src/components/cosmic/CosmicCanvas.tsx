@@ -52,7 +52,7 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
 
     // 1. Scene
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x02040a, 0.0035);
+    scene.fog = new THREE.FogExp2(0x000000, 0.0035);
     sceneRef.current = scene;
 
     // 2. Camera
@@ -66,6 +66,7 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
       alpha: true,
       powerPreference: 'high-performance',
     });
+    renderer.setClearColor(0x000000, 1);
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;

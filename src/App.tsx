@@ -77,7 +77,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#02040a] text-slate-100 overflow-x-hidden">
+    <div className="relative min-h-screen w-full bg-black text-slate-100 overflow-x-hidden">
       {/* 3D Cosmic WebGL Background or 2D Fallback */}
       {hasWebGL ? (
         <CosmicCanvas
