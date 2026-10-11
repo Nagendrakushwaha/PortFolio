@@ -36,7 +36,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
   if (!project) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/80 backdrop-blur-xl animate-in fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/90 backdrop-blur-xl animate-in fade-in">
       <div 
         className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto glass-panel-glow rounded-3xl border border-cyan-500/40 p-6 sm:p-8 shadow-2xl space-y-6 text-slate-100"
         onClick={(e) => e.stopPropagation()}
@@ -80,7 +80,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
               alt={project.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#070c24] via-transparent to-transparent opacity-60" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
           </div>
         )}
 

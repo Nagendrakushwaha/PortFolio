@@ -99,7 +99,7 @@ export const AboutSection: React.FC = () => {
         <div className="lg:col-span-5">
           <div className="glass-panel rounded-2xl border border-white/15 overflow-hidden shadow-2xl">
             {/* Terminal Header */}
-            <div className="bg-[#050817] px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <div className="bg-[#0a0a0f] px-4 py-3 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <span className="w-3 h-3 rounded-full bg-red-500/80" />
                 <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
@@ -112,7 +112,7 @@ export const AboutSection: React.FC = () => {
             </div>
 
             {/* Terminal Content */}
-            <div className="p-5 font-mono text-xs space-y-3 bg-[#02040a]/90 text-slate-300">
+            <div className="p-5 font-mono text-xs space-y-3 bg-black/95 text-slate-300">
               <p className="text-cyan-400">
                 $ whoami
               </p>

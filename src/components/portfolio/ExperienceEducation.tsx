@@ -24,7 +24,7 @@ export const ExperienceEducation: React.FC = () => {
           {experienceData.map((item, idx) => (
             <div key={idx} className="relative group">
               {/* Timeline bullet icon */}
-              <div className="absolute -left-[35px] sm:-left-[51px] top-1.5 w-6 h-6 rounded-full bg-[#040817] border-2 border-cyan-400 flex items-center justify-center shadow-glow-cyan">
+              <div className="absolute -left-[35px] sm:-left-[51px] top-1.5 w-6 h-6 rounded-full bg-black border-2 border-cyan-400 flex items-center justify-center shadow-glow-cyan">
                 <span className="w-2 h-2 rounded-full bg-cyan-300" />
               </div>
 

@@ -147,7 +147,7 @@ export const InteractiveMLLab: React.FC = () => {
           y: ['Actual Negative', 'Actual Positive'],
           type: 'heatmap',
           colorscale: [
-            [0, '#070c24'],
+            [0, '#020204'],
             [0.5, '#1e3a8a'],
             [1, '#00f2fe'],
           ],
