@@ -92,25 +92,28 @@ export const App: React.FC = () => {
         <WebGLFallback />
       )}
 
-      {/* Persistent HUD Navigation */}
-      <CosmicNavbar
-        activeScene={activeScene}
-        onChangeScene={(scene) => {
-          playClick();
-          setActiveScene(scene);
-        }}
-        isMuted={isMuted}
-        onToggleSound={toggleSound}
-        onPlayClick={playClick}
-      />
+      {/* Persistent HUD Navigation (Hidden on initial Awakening screen) */}
+      {activeScene !== 'awakening' && (
+        <CosmicNavbar
+          activeScene={activeScene}
+          onChangeScene={(scene) => {
+            playClick();
+            setActiveScene(scene);
+          }}
+          isMuted={isMuted}
+          onToggleSound={toggleSound}
+          onPlayClick={playClick}
+        />
+      )}
 
       {/* Dynamic Cinematic Scenes */}
       {activeScene === 'awakening' && (
         <CosmicAwakening
           onEnterUniverse={handleEnterUniverse}
-          onSkipIntro={handleSkipIntro}
           onExploreDirectly={handleExploreDirectly}
           onPlayClick={playClick}
+          isMuted={isMuted}
+          onToggleSound={toggleSound}
         />
       )}
 
