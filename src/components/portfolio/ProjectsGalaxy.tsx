@@ -37,14 +37,14 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
     <section id="projects" className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto">
       {/* Section Header */}
       <div className="space-y-4 text-center max-w-3xl mx-auto mb-10">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full glass-panel border border-cyan-500/30 text-xs font-mono text-cyan-300">
+        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-mono text-blue-700 shadow-sm font-semibold">
           <Layers className="w-3.5 h-3.5" />
           <span>VERIFIED PROJECT CONSTELLATION</span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-display font-bold text-white">
+        <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-slate-900">
           Real AI Systems & Empirical Architectures
         </h2>
-        <p className="text-sm font-mono text-slate-400">
+        <p className="text-sm font-mono text-slate-600">
           10 verified projects with real benchmarks, model architectures, and open-source repositories.
         </p>
       </div>
@@ -59,8 +59,8 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
               onClick={() => setSelectedDomain(domain)}
               className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all duration-300 ${
                 selectedDomain === domain
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/60 shadow-glow-cyan'
-                  : 'glass-panel text-slate-400 hover:text-white border-white/10 hover:border-white/20'
+                  ? 'bg-indigo-600 text-white border border-indigo-600 shadow-md shadow-indigo-500/25 font-semibold'
+                  : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
               }`}
             >
               {domain}
@@ -76,7 +76,7 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search tech, title, or domain..."
-            className="w-full pl-10 pr-4 py-2 rounded-full glass-panel border border-white/10 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all"
+            className="w-full pl-10 pr-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
           />
         </div>
       </div>
@@ -87,21 +87,21 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
           <div
             key={project.id}
             onClick={() => setActiveModalProject(project)}
-            className="group cursor-pointer glass-card rounded-2xl overflow-hidden border border-white/10 flex flex-col justify-between transition-all duration-300 hover:border-cyan-400/50 hover:shadow-2xl"
+            className="group cursor-pointer bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-md hover:shadow-xl hover:border-indigo-400 transition-all duration-300 flex flex-col justify-between"
           >
             {/* Top Project Cover Image if available */}
             {project.image && (
-              <div className="relative w-full h-44 overflow-hidden bg-black/60 border-b border-white/10">
+              <div className="relative w-full h-44 overflow-hidden bg-slate-100 border-b border-slate-200">
                 <img
                   src={project.image}
                   alt={project.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-80" />
                 
                 {/* Domain Pill on Image */}
                 <div className="absolute top-3 left-3 flex items-center space-x-1.5">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-black/70 text-cyan-300 border border-cyan-500/40 backdrop-blur-md">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-white/95 text-indigo-700 font-bold border border-slate-200/80 shadow-sm backdrop-blur-md">
                     {project.domain}
                   </span>
                 </div>
@@ -109,12 +109,12 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
                 {/* Live Demo / Lab Badge on Image */}
                 <div className="absolute top-3 right-3">
                   {project.liveDemoUrl ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/80 text-white border border-emerald-400 backdrop-blur-md flex items-center space-x-1">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-600 text-white font-semibold shadow-sm flex items-center space-x-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                       <span>Live Render Demo</span>
                     </span>
                   ) : project.demoAvailable ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/80 text-white border border-purple-400 backdrop-blur-md flex items-center space-x-1">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-purple-600 text-white font-semibold shadow-sm flex items-center space-x-1">
                       <FlaskConical className="w-3 h-3" />
                       <span>ML Lab</span>
                     </span>
@@ -128,16 +128,16 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
               <div>
                 {!project.image && (
                   <div className="flex items-center justify-between mb-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">
                       {project.domain}
                     </span>
                   </div>
                 )}
 
-                <h3 className="text-base sm:text-lg font-display font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-1">
+                <h3 className="text-base sm:text-lg font-display font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
                   {project.title}
                 </h3>
-                <p className="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">
+                <p className="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">
                   {project.shortDescription}
                 </p>
               </div>
@@ -147,21 +147,21 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
                 {project.technologies.slice(0, 4).map((tech, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 text-slate-300 border border-white/5"
+                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200/80 font-medium"
                   >
                     {tech}
                   </span>
                 ))}
                 {project.technologies.length > 4 && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-mono text-slate-500">
+                  <span className="px-1.5 py-0.5 text-[10px] font-mono text-slate-500 font-medium">
                     +{project.technologies.length - 4}
                   </span>
                 )}
               </div>
 
               {/* Bottom Row: Actions & Case Study Trigger */}
-              <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs font-mono">
-                <span className="text-cyan-400 group-hover:underline flex items-center space-x-1">
+              <div className="pt-3 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono">
+                <span className="text-indigo-600 font-semibold group-hover:text-indigo-700 group-hover:underline flex items-center space-x-1">
                   <span>View Case Study</span>
                   <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </span>
@@ -173,15 +173,15 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                      className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors"
                       title="View GitHub Repository"
                     >
-                      <GithubIcon className="w-3.5 h-3.5 text-cyan-400" />
+                      <GithubIcon className="w-3.5 h-3.5 text-indigo-600" />
                     </a>
                   )}
                   {project.dataIntegrityNote && (
                     <span 
-                      className="text-amber-400/80 hover:text-amber-300 transition-colors"
+                      className="text-amber-500 hover:text-amber-600 transition-colors"
                       title="Includes verified evaluation notes"
                     >
                       <Info className="w-3.5 h-3.5" />
@@ -195,8 +195,8 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
       </div>
 
       {filteredProjects.length === 0 && (
-        <div className="text-center py-12 glass-panel rounded-2xl border border-white/10 p-8">
-          <p className="text-slate-400 font-mono text-xs">
+        <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+          <p className="text-slate-500 font-mono text-xs">
             No projects found matching current filter or search criteria.
           </p>
         </div>

@@ -10,14 +10,14 @@ export const SkillsSection: React.FC = () => {
   return (
     <section id="skills" className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto">
       <div className="space-y-4 text-center max-w-3xl mx-auto mb-12">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full glass-panel border border-purple-500/30 text-xs font-mono text-purple-300">
+        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-xs font-mono text-purple-700 shadow-sm font-semibold">
           <Cpu className="w-3.5 h-3.5" />
           <span>TECHNICAL COMPETENCIES</span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-display font-bold text-white">
+        <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-slate-900">
           Architectural & Algorithmic Toolset
         </h2>
-        <p className="text-sm font-mono text-slate-400">
+        <p className="text-sm font-mono text-slate-600">
           Structured by domain specialization and tied to real verified projects, without arbitrary percentage ratings.
         </p>
       </div>
@@ -30,28 +30,28 @@ export const SkillsSection: React.FC = () => {
             onClick={() => setActiveCategoryIndex(idx)}
             className={`px-4 py-2 rounded-full text-xs font-mono transition-all duration-300 flex items-center space-x-2 ${
               activeCategoryIndex === idx
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/60 shadow-glow-cyan'
-                : 'glass-panel text-slate-400 hover:text-white border-white/10 hover:border-white/20'
+                ? 'bg-indigo-600 text-white border border-indigo-600 shadow-md shadow-indigo-500/25 font-semibold'
+                : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
             }`}
           >
-            <Sparkles className={`w-3.5 h-3.5 ${activeCategoryIndex === idx ? 'text-cyan-400' : 'text-slate-500'}`} />
+            <Sparkles className={`w-3.5 h-3.5 ${activeCategoryIndex === idx ? 'text-amber-300' : 'text-slate-400'}`} />
             <span>{category.categoryName}</span>
           </button>
         ))}
       </div>
 
       {/* Category Overview Card */}
-      <div className="glass-panel-glow rounded-3xl p-6 sm:p-10 border border-cyan-500/30 shadow-2xl space-y-8">
-        <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/90 shadow-xl space-y-8">
+        <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h3 className="text-xl sm:text-2xl font-display font-bold text-white">
+            <h3 className="text-xl sm:text-2xl font-display font-extrabold text-slate-900">
               {activeCategory.categoryName}
             </h3>
-            <p className="text-xs sm:text-sm font-mono text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm font-mono text-slate-600 mt-1">
               {activeCategory.description}
             </p>
           </div>
-          <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-mono">
+          <div className="px-3.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-mono font-bold shadow-sm">
             {activeCategory.skills.length} Core Modules
           </div>
         </div>
@@ -61,29 +61,29 @@ export const SkillsSection: React.FC = () => {
           {activeCategory.skills.map((skill, idx) => (
             <div
               key={idx}
-              className="glass-card rounded-2xl p-5 border border-white/10 space-y-3"
+              className="bg-slate-50/80 hover:bg-white rounded-2xl p-5 border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all space-y-3"
             >
               <div className="flex items-center justify-between">
-                <h4 className="text-base font-display font-bold text-white flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                <h4 className="text-base font-display font-bold text-slate-900 flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-indigo-600" />
                   <span>{skill.name}</span>
                 </h4>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/15 border border-purple-500/30 text-purple-300">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-purple-100 border border-purple-200 text-purple-800 font-bold shadow-sm">
                   {skill.tag}
                 </span>
               </div>
 
-              <p className="text-xs text-slate-300 font-mono leading-relaxed">
+              <p className="text-xs text-slate-600 font-mono leading-relaxed">
                 {skill.levelDescription}
               </p>
 
               {skill.associatedProjects && skill.associatedProjects.length > 0 && (
-                <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-slate-500">Implemented in:</span>
+                <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-slate-500 font-semibold">Implemented in:</span>
                   {skill.associatedProjects.map((p, pIdx) => (
                     <span
                       key={pIdx}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-cyan-300 border border-white/5"
+                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-white text-indigo-700 border border-slate-200 shadow-2xs font-medium"
                     >
                       {p}
                     </span>

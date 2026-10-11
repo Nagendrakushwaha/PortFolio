@@ -147,9 +147,9 @@ export const InteractiveMLLab: React.FC = () => {
           y: ['Actual Negative', 'Actual Positive'],
           type: 'heatmap',
           colorscale: [
-            [0, '#020204'],
-            [0.5, '#1e3a8a'],
-            [1, '#00f2fe'],
+            [0, '#f1f5f9'],
+            [0.5, '#93c5fd'],
+            [1, '#2563eb'],
           ],
           showscale: false,
           text: [
@@ -163,19 +163,19 @@ export const InteractiveMLLab: React.FC = () => {
       const layout: Partial<Plotly.Layout> = {
         title: {
           text: `Confusion Matrix @ Threshold ${threshold.toFixed(2)}`,
-          font: { color: '#ffffff', family: 'Space Grotesk', size: 14 },
+          font: { color: '#0f172a', family: 'Space Grotesk', size: 14 },
         },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        font: { color: '#94a3b8', family: 'JetBrains Mono', size: 11 },
+        font: { color: '#475569', family: 'JetBrains Mono', size: 11 },
         margin: { l: 80, r: 20, t: 40, b: 40 },
-        xaxis: { color: '#94a3b8' },
-        yaxis: { color: '#94a3b8' },
+        xaxis: { color: '#475569' },
+        yaxis: { color: '#475569' },
         annotations: [
-          { x: 0, y: 0, text: `TN: ${metrics.tn}`, showarrow: false, font: { color: '#fff', size: 14, weight: 700 } },
-          { x: 1, y: 0, text: `FP: ${metrics.fp}`, showarrow: false, font: { color: '#fca5a5', size: 14, weight: 700 } },
-          { x: 0, y: 1, text: `FN: ${metrics.fn}`, showarrow: false, font: { color: '#fca5a5', size: 14, weight: 700 } },
-          { x: 1, y: 1, text: `TP: ${metrics.tp}`, showarrow: false, font: { color: '#00f2fe', size: 14, weight: 700 } },
+          { x: 0, y: 0, text: `TN: ${metrics.tn}`, showarrow: false, font: { color: '#0f172a', size: 14, weight: 700 } },
+          { x: 1, y: 0, text: `FP: ${metrics.fp}`, showarrow: false, font: { color: '#dc2626', size: 14, weight: 700 } },
+          { x: 0, y: 1, text: `FN: ${metrics.fn}`, showarrow: false, font: { color: '#dc2626', size: 14, weight: 700 } },
+          { x: 1, y: 1, text: `TP: ${metrics.tp}`, showarrow: false, font: { color: '#ffffff', size: 14, weight: 700 } },
         ],
       };
 
@@ -195,36 +195,36 @@ export const InteractiveMLLab: React.FC = () => {
           y: tpr,
           mode: 'lines',
           name: 'ROC Curve (AUC = 0.97)',
-          line: { color: '#a855f7', width: 3 },
+          line: { color: '#7c3aed', width: 3 },
         },
         {
           x: [0, 1],
           y: [0, 1],
           mode: 'lines',
           name: 'Random Chance',
-          line: { color: '#475569', dash: 'dash' },
+          line: { color: '#94a3b8', dash: 'dash' },
         },
         {
           x: [currentFpr],
           y: [currentTpr],
           mode: 'markers',
           name: `Current Operating Point (${threshold.toFixed(2)})`,
-          marker: { color: '#00f2fe', size: 12, line: { color: '#ffffff', width: 2 } },
+          marker: { color: '#2563eb', size: 12, line: { color: '#ffffff', width: 2 } },
         },
       ];
 
       const layout: Partial<Plotly.Layout> = {
         title: {
           text: 'Receiver Operating Characteristic (ROC)',
-          font: { color: '#ffffff', family: 'Space Grotesk', size: 14 },
+          font: { color: '#0f172a', family: 'Space Grotesk', size: 14 },
         },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
-        font: { color: '#94a3b8', family: 'JetBrains Mono', size: 11 },
+        font: { color: '#475569', family: 'JetBrains Mono', size: 11 },
         margin: { l: 50, r: 20, t: 40, b: 40 },
-        xaxis: { title: { text: 'False Positive Rate' }, color: '#94a3b8', range: [0, 1] },
-        yaxis: { title: { text: 'True Positive Rate (Recall)' }, color: '#94a3b8', range: [0, 1.05] },
-        legend: { orientation: 'h', y: -0.25, font: { size: 10 } },
+        xaxis: { title: { text: 'False Positive Rate' }, color: '#475569', range: [0, 1] },
+        yaxis: { title: { text: 'True Positive Rate (Recall)' }, color: '#475569', range: [0, 1.05] },
+        legend: { orientation: 'h', y: -0.25, font: { size: 10, color: '#334155' } },
       };
 
       Plotly.react(rocPlotRef.current, data, layout, { responsive: true, displayModeBar: false });
@@ -235,14 +235,14 @@ export const InteractiveMLLab: React.FC = () => {
     <section id="mllab" className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="space-y-4 text-center max-w-3xl mx-auto mb-10">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full glass-panel border border-emerald-500/30 text-xs font-mono text-emerald-300">
+        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono text-emerald-700 shadow-sm font-semibold">
           <FlaskConical className="w-3.5 h-3.5" />
           <span>INTERACTIVE ML LABORATORY</span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-display font-bold text-white">
+        <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-slate-900">
           Empirical Model Exploration & Telemetry
         </h2>
-        <p className="text-sm font-mono text-slate-400">
+        <p className="text-sm font-mono text-slate-600">
           Evaluate live machine learning decision boundaries, clinical risk scoring, and interactive Plotly confusion matrices.
         </p>
       </div>
@@ -253,8 +253,8 @@ export const InteractiveMLLab: React.FC = () => {
           onClick={() => setActiveTab('spam')}
           className={`px-4 py-2 rounded-full text-xs font-mono transition-all flex items-center space-x-2 ${
             activeTab === 'spam'
-              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400 shadow-glow-cyan'
-              : 'glass-panel text-slate-400 hover:text-white border-white/10'
+              ? 'bg-indigo-600 text-white border border-indigo-600 shadow-md shadow-indigo-500/25 font-semibold'
+              : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
           }`}
         >
           <Brain className="w-3.5 h-3.5" />
@@ -265,8 +265,8 @@ export const InteractiveMLLab: React.FC = () => {
           onClick={() => setActiveTab('heart')}
           className={`px-4 py-2 rounded-full text-xs font-mono transition-all flex items-center space-x-2 ${
             activeTab === 'heart'
-              ? 'bg-rose-500/20 text-rose-300 border border-rose-400 shadow-glow-magenta'
-              : 'glass-panel text-slate-400 hover:text-white border-white/10'
+              ? 'bg-rose-600 text-white border border-rose-600 shadow-md shadow-rose-500/25 font-semibold'
+              : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
           }`}
         >
           <Activity className="w-3.5 h-3.5" />
@@ -277,8 +277,8 @@ export const InteractiveMLLab: React.FC = () => {
           onClick={() => setActiveTab('network')}
           className={`px-4 py-2 rounded-full text-xs font-mono transition-all flex items-center space-x-2 ${
             activeTab === 'network'
-              ? 'bg-purple-500/20 text-purple-300 border border-purple-400 shadow-glow-violet'
-              : 'glass-panel text-slate-400 hover:text-white border-white/10'
+              ? 'bg-purple-600 text-white border border-purple-600 shadow-md shadow-purple-500/25 font-semibold'
+              : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
@@ -289,8 +289,8 @@ export const InteractiveMLLab: React.FC = () => {
           onClick={() => setActiveTab('metrics')}
           className={`px-4 py-2 rounded-full text-xs font-mono transition-all flex items-center space-x-2 ${
             activeTab === 'metrics'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400 shadow-glow-cyan'
-              : 'glass-panel text-slate-400 hover:text-white border-white/10'
+              ? 'bg-emerald-600 text-white border border-emerald-600 shadow-md shadow-emerald-500/25 font-semibold'
+              : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
           }`}
         >
           <Sliders className="w-3.5 h-3.5" />
@@ -299,29 +299,29 @@ export const InteractiveMLLab: React.FC = () => {
       </div>
 
       {/* Main Interactive Stage */}
-      <div className="glass-panel-glow rounded-3xl p-6 sm:p-10 border border-cyan-500/30 shadow-2xl">
+      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/90 shadow-xl space-y-6 text-slate-800">
         {/* ======================================= */}
         {/* TAB 1: SMS SPAM CLASSIFIER */}
         {/* ======================================= */}
         {activeTab === 'spam' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
               <div>
-                <h3 className="text-xl font-display font-bold text-white">
+                <h3 className="text-xl font-display font-bold text-slate-900">
                   SMS Spam Text Classifier Demonstration
                 </h3>
-                <p className="text-xs font-mono text-slate-400">
+                <p className="text-xs font-mono text-slate-600">
                   Calculates probabilistic score using token representations and capitalizes ratio heuristics.
                 </p>
               </div>
-              <span className="text-xs font-mono px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+              <span className="text-xs font-mono px-3.5 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold shadow-sm">
                 Mode: Live Client Inference
               </span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               <div className="lg:col-span-7 space-y-4">
-                <label className="block text-xs font-mono text-slate-300">
+                <label className="block text-xs font-mono text-slate-700 font-semibold">
                   Input SMS Message to Analyze:
                 </label>
                 <textarea
@@ -331,20 +331,20 @@ export const InteractiveMLLab: React.FC = () => {
                     evaluateSms(e.target.value);
                   }}
                   rows={4}
-                  className="w-full p-4 rounded-2xl glass-panel border border-white/15 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all resize-none"
+                  className="w-full p-4 rounded-2xl bg-slate-50 hover:bg-white focus:bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 text-sm font-mono text-slate-900 placeholder-slate-400 transition-all resize-none shadow-sm"
                   placeholder="Type any message..."
                 />
 
                 {/* Preset Prompt Buttons */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-mono text-slate-400">Sample presets:</span>
+                  <span className="text-[11px] font-mono text-slate-500 font-medium">Sample presets:</span>
                   <button
                     onClick={() => {
                       const msg = 'URGENT! You have won a guaranteed 1000 cash prize. Call 08000930705 now to claim!';
                       setSmsText(msg);
                       evaluateSms(msg);
                     }}
-                    className="text-[10px] font-mono px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-rose-300 border border-rose-500/20"
+                    className="text-[10px] font-mono px-2.5 py-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-semibold shadow-2xs"
                   >
                     Phishing / Prize Scam
                   </button>
@@ -354,7 +354,7 @@ export const InteractiveMLLab: React.FC = () => {
                       setSmsText(msg);
                       evaluateSms(msg);
                     }}
-                    className="text-[10px] font-mono px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-cyan-300 border border-cyan-500/20"
+                    className="text-[10px] font-mono px-2.5 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-semibold shadow-2xs"
                   >
                     Legitimate (Ham) Message
                   </button>
@@ -362,13 +362,13 @@ export const InteractiveMLLab: React.FC = () => {
               </div>
 
               {/* Output Result Telemetry */}
-              <div className="lg:col-span-5 p-5 rounded-2xl glass-card border border-white/10 space-y-4">
+              <div className="lg:col-span-5 p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono text-slate-400">Classification Outcome</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold ${
+                  <span className="text-xs font-mono text-slate-500 font-medium">Classification Outcome</span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold shadow-sm ${
                     spamResult.isSpam
-                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-glow-magenta'
-                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                   }`}>
                     {spamResult.isSpam ? 'SPAM DETECTED' : 'LEGITIMATE (HAM)'}
                   </span>
@@ -376,30 +376,30 @@ export const InteractiveMLLab: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400">Spam Probability Score:</span>
-                    <span className="text-white font-bold">{Math.round(spamResult.probability * 100)}%</span>
+                    <span className="text-slate-600 font-medium">Spam Probability Score:</span>
+                    <span className="text-slate-900 font-extrabold">{Math.round(spamResult.probability * 100)}%</span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${
-                        spamResult.isSpam ? 'bg-gradient-to-r from-yellow-400 to-rose-500' : 'bg-emerald-400'
+                        spamResult.isSpam ? 'bg-gradient-to-r from-amber-500 to-rose-600' : 'bg-emerald-500'
                       }`}
                       style={{ width: `${Math.round(spamResult.probability * 100)}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-white/10 space-y-2">
-                  <span className="text-[11px] font-mono text-slate-400 block">Flagged Token Triggers:</span>
+                <div className="pt-2 border-t border-slate-200 space-y-2">
+                  <span className="text-[11px] font-mono text-slate-500 font-semibold block">Flagged Token Triggers:</span>
                   <div className="flex flex-wrap gap-1.5">
                     {spamResult.flaggedKeywords.length > 0 ? (
                       spamResult.flaggedKeywords.map((kw, i) => (
-                        <span key={i} className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        <span key={i} className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200 font-bold shadow-2xs">
                           {kw}
                         </span>
                       ))
                     ) : (
-                      <span className="text-[11px] font-mono text-emerald-400">
+                      <span className="text-[11px] font-mono text-emerald-700 font-bold">
                         None detected (Clean token signature)
                       </span>
                     )}
@@ -415,11 +415,11 @@ export const InteractiveMLLab: React.FC = () => {
         {/* ======================================= */}
         {activeTab === 'heart' && (
           <div className="space-y-6">
-            <div className="border-b border-white/10 pb-4">
-              <h3 className="text-xl font-display font-bold text-white">
+            <div className="border-b border-slate-200 pb-4">
+              <h3 className="text-xl font-display font-bold text-slate-900">
                 Cardiovascular Clinical Risk Predictor
               </h3>
-              <p className="text-xs font-mono text-slate-400">
+              <p className="text-xs font-mono text-slate-600">
                 Log-odds estimator calibrated against Cleveland clinical biomarker factors.
               </p>
             </div>
@@ -428,8 +428,8 @@ export const InteractiveMLLab: React.FC = () => {
               {/* Sliders */}
               <div className="lg:col-span-7 space-y-4">
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Patient Age: {heartParams.age} years</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Patient Age: <strong className="text-slate-900">{heartParams.age} years</strong></span>
                     <span className="text-slate-500">Range: 25 - 80</span>
                   </div>
                   <input
@@ -438,13 +438,13 @@ export const InteractiveMLLab: React.FC = () => {
                     max="80"
                     value={heartParams.age}
                     onChange={(e) => setHeartParams({ ...heartParams, age: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Resting Blood Pressure: {heartParams.trestbps} mm Hg</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Resting Blood Pressure: <strong className="text-slate-900">{heartParams.trestbps} mm Hg</strong></span>
                     <span className="text-slate-500">Normal: 120</span>
                   </div>
                   <input
@@ -453,13 +453,13 @@ export const InteractiveMLLab: React.FC = () => {
                     max="200"
                     value={heartParams.trestbps}
                     onChange={(e) => setHeartParams({ ...heartParams, trestbps: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Serum Cholesterol: {heartParams.chol} mg/dl</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Serum Cholesterol: <strong className="text-slate-900">{heartParams.chol} mg/dl</strong></span>
                     <span className="text-slate-500">Normal: &lt; 200</span>
                   </div>
                   <input
@@ -468,13 +468,13 @@ export const InteractiveMLLab: React.FC = () => {
                     max="380"
                     value={heartParams.chol}
                     onChange={(e) => setHeartParams({ ...heartParams, chol: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Max Heart Rate: {heartParams.thalach} bpm</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Max Heart Rate: <strong className="text-slate-900">{heartParams.thalach} bpm</strong></span>
                     <span className="text-slate-500">Target: 140 - 180</span>
                   </div>
                   <input
@@ -483,13 +483,13 @@ export const InteractiveMLLab: React.FC = () => {
                     max="210"
                     value={heartParams.thalach}
                     onChange={(e) => setHeartParams({ ...heartParams, thalach: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>ST Depression (Oldpeak): {heartParams.oldpeak.toFixed(1)}</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>ST Depression (Oldpeak): <strong className="text-slate-900">{heartParams.oldpeak.toFixed(1)}</strong></span>
                     <span className="text-slate-500">Normal: &lt; 1.0</span>
                   </div>
                   <input
@@ -499,33 +499,33 @@ export const InteractiveMLLab: React.FC = () => {
                     step="0.1"
                     value={heartParams.oldpeak}
                     onChange={(e) => setHeartParams({ ...heartParams, oldpeak: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
               </div>
 
               {/* Output Telemetry Gauge */}
-              <div className="lg:col-span-5 p-6 rounded-2xl glass-card border border-white/10 space-y-5 text-center">
-                <span className="text-xs font-mono text-slate-400 block uppercase">
+              <div className="lg:col-span-5 p-6 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm space-y-5 text-center">
+                <span className="text-xs font-mono text-slate-500 font-semibold block uppercase">
                   Estimated Probability of Heart Disease
                 </span>
 
-                <div className="text-5xl font-mono font-bold text-white text-glow-cyan">
+                <div className="text-5xl font-mono font-extrabold text-slate-900">
                   {Math.round(heartRisk.prob * 100)}%
                 </div>
 
-                <div className="inline-block px-4 py-1.5 rounded-full text-xs font-mono bg-white/5 border border-white/10 text-cyan-300">
+                <div className="inline-block px-4 py-1.5 rounded-full text-xs font-mono font-bold bg-indigo-50 border border-indigo-200 text-indigo-700 shadow-sm">
                   {heartRisk.level}
                 </div>
 
-                <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden">
+                <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-600 transition-all duration-300"
                     style={{ width: `${Math.round(heartRisk.prob * 100)}%` }}
                   />
                 </div>
 
-                <p className="text-[11px] font-mono text-slate-400 text-left pt-2 border-t border-white/5">
+                <p className="text-[11px] font-mono text-slate-500 text-left pt-2 border-t border-slate-200">
                   * Educational clinical decision-support simulation. Not intended as direct medical advice.
                 </p>
               </div>
@@ -538,20 +538,20 @@ export const InteractiveMLLab: React.FC = () => {
         {/* ======================================= */}
         {activeTab === 'network' && (
           <div className="space-y-6">
-            <div className="border-b border-white/10 pb-4">
-              <h3 className="text-xl font-display font-bold text-white">
+            <div className="border-b border-slate-200 pb-4">
+              <h3 className="text-xl font-display font-bold text-slate-900">
                 Network Flow Anomaly Inspector (CIC-IDS2017)
               </h3>
-              <p className="text-xs font-mono text-slate-400">
+              <p className="text-xs font-mono text-slate-600">
                 Inspect simulated flow feature vectors against trained decision boundaries.
               </p>
             </div>
 
             {/* Historical Verification Disclosure Alert */}
-            <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs font-mono text-cyan-200 flex items-start space-x-3">
-              <AlertCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs font-mono text-blue-900 flex items-start space-x-3 shadow-sm">
+              <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-cyan-300 block">Dataset & Metric Verification Note:</span>
+                <span className="font-bold text-blue-950 block">Dataset & Metric Verification Note:</span>
                 CIC-IDS2017 dataset benchmarks report ~99.9% accuracy historically on benchmark test subsets. As mandated by rigorous data integrity practices, this interactive module demonstrates flow feature boundary inspection without claiming unverified live server production metrics.
               </div>
             </div>
@@ -559,8 +559,8 @@ export const InteractiveMLLab: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-4">
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Flow Duration: {networkParams.flowDuration} µs</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Flow Duration: <strong className="text-slate-900">{networkParams.flowDuration} µs</strong></span>
                   </div>
                   <input
                     type="range"
@@ -569,13 +569,13 @@ export const InteractiveMLLab: React.FC = () => {
                     step="500"
                     value={networkParams.flowDuration}
                     onChange={(e) => setNetworkParams({ ...networkParams, flowDuration: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Total Forward Packets: {networkParams.fwdPackets}</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Total Forward Packets: <strong className="text-slate-900">{networkParams.fwdPackets}</strong></span>
                   </div>
                   <input
                     type="range"
@@ -583,13 +583,13 @@ export const InteractiveMLLab: React.FC = () => {
                     max="100"
                     value={networkParams.fwdPackets}
                     onChange={(e) => setNetworkParams({ ...networkParams, fwdPackets: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Total Backward Packets: {networkParams.bwdPackets}</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Total Backward Packets: <strong className="text-slate-900">{networkParams.bwdPackets}</strong></span>
                   </div>
                   <input
                     type="range"
@@ -597,13 +597,13 @@ export const InteractiveMLLab: React.FC = () => {
                     max="80"
                     value={networkParams.bwdPackets}
                     onChange={(e) => setNetworkParams({ ...networkParams, bwdPackets: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-mono text-slate-300 mb-1">
-                    <span>Packet Length Std Dev: {networkParams.packetLengthStd} bytes</span>
+                  <div className="flex justify-between text-xs font-mono text-slate-700 font-medium mb-1">
+                    <span>Packet Length Std Dev: <strong className="text-slate-900">{networkParams.packetLengthStd} bytes</strong></span>
                   </div>
                   <input
                     type="range"
@@ -611,33 +611,33 @@ export const InteractiveMLLab: React.FC = () => {
                     max="450"
                     value={networkParams.packetLengthStd}
                     onChange={(e) => setNetworkParams({ ...networkParams, packetLengthStd: +e.target.value })}
-                    className="w-full accent-cyan-400"
+                    className="w-full accent-indigo-600"
                   />
                 </div>
               </div>
 
               {/* Output Telemetry */}
-              <div className="lg:col-span-5 p-6 rounded-2xl glass-card border border-white/10 space-y-4 text-center">
-                <span className="text-xs font-mono text-slate-400 block uppercase">
+              <div className="lg:col-span-5 p-6 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm space-y-4 text-center">
+                <span className="text-xs font-mono text-slate-500 font-semibold block uppercase">
                   Flow Classification Verdict
                 </span>
 
-                <div className={`p-4 rounded-xl border font-mono text-sm font-bold ${
+                <div className={`p-4 rounded-xl border font-mono text-sm font-bold shadow-sm ${
                   intrusionVerdict.isAnomaly
-                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-glow-magenta'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    ? 'bg-rose-100 text-rose-800 border-rose-200'
+                    : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                 }`}>
                   {intrusionVerdict.attackType}
                 </div>
 
-                <div className="text-xs font-mono text-slate-300 flex justify-between px-2">
-                  <span>Anomaly Risk Score:</span>
-                  <span className="font-bold text-white">{Math.round(intrusionVerdict.score * 100)}%</span>
+                <div className="text-xs font-mono text-slate-700 flex justify-between px-2">
+                  <span className="font-medium">Anomaly Risk Score:</span>
+                  <span className="font-extrabold text-slate-900">{Math.round(intrusionVerdict.score * 100)}%</span>
                 </div>
 
-                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
                   <div
-                    className={`h-full ${intrusionVerdict.isAnomaly ? 'bg-rose-500' : 'bg-emerald-400'}`}
+                    className={`h-full ${intrusionVerdict.isAnomaly ? 'bg-rose-600' : 'bg-emerald-600'}`}
                     style={{ width: `${Math.round(intrusionVerdict.score * 100)}%` }}
                   />
                 </div>
@@ -651,19 +651,19 @@ export const InteractiveMLLab: React.FC = () => {
         {/* ======================================= */}
         {activeTab === 'metrics' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
               <div>
-                <h3 className="text-xl font-display font-bold text-white">
+                <h3 className="text-xl font-display font-bold text-slate-900">
                   Plotly.js Interactive Model Performance & Threshold Tuner
                 </h3>
-                <p className="text-xs font-mono text-slate-400">
+                <p className="text-xs font-mono text-slate-600">
                   Slide the decision threshold to observe real-time trade-offs between Precision, Recall, and False Positives.
                 </p>
               </div>
 
-              <div className="flex items-center space-x-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-                <span className="text-xs font-mono text-cyan-300">
-                  Threshold: <strong className="text-white">{threshold.toFixed(2)}</strong>
+              <div className="flex items-center space-x-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+                <span className="text-xs font-mono text-slate-700 font-medium">
+                  Threshold: <strong className="text-indigo-600 font-bold">{threshold.toFixed(2)}</strong>
                 </span>
                 <input
                   type="range"
@@ -672,38 +672,38 @@ export const InteractiveMLLab: React.FC = () => {
                   step="0.01"
                   value={threshold}
                   onChange={(e) => setThreshold(+e.target.value)}
-                  className="w-28 sm:w-36 accent-cyan-400 cursor-pointer"
+                  className="w-28 sm:w-36 accent-indigo-600 cursor-pointer"
                 />
               </div>
             </div>
 
             {/* Metrics Dashboard Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-                <span className="text-[11px] text-slate-400 block">Accuracy</span>
-                <span className="text-lg font-bold text-white">{(metrics.accuracy * 100).toFixed(1)}%</span>
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-sm text-center space-y-1">
+                <span className="text-[11px] text-slate-500 font-semibold block">Accuracy</span>
+                <span className="text-lg font-extrabold text-slate-900">{(metrics.accuracy * 100).toFixed(1)}%</span>
               </div>
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-                <span className="text-[11px] text-slate-400 block">Precision</span>
-                <span className="text-lg font-bold text-cyan-300">{(metrics.precision * 100).toFixed(1)}%</span>
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-sm text-center space-y-1">
+                <span className="text-[11px] text-slate-500 font-semibold block">Precision</span>
+                <span className="text-lg font-extrabold text-blue-600">{(metrics.precision * 100).toFixed(1)}%</span>
               </div>
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-                <span className="text-[11px] text-slate-400 block">Recall (Sensitivity)</span>
-                <span className="text-lg font-bold text-purple-300">{(metrics.recall * 100).toFixed(1)}%</span>
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-sm text-center space-y-1">
+                <span className="text-[11px] text-slate-500 font-semibold block">Recall (Sensitivity)</span>
+                <span className="text-lg font-extrabold text-purple-600">{(metrics.recall * 100).toFixed(1)}%</span>
               </div>
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-center space-y-1">
-                <span className="text-[11px] text-slate-400 block">F1-Score</span>
-                <span className="text-lg font-bold text-emerald-300">{(metrics.f1 * 100).toFixed(1)}%</span>
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 shadow-sm text-center space-y-1">
+                <span className="text-[11px] text-slate-500 font-semibold block">F1-Score</span>
+                <span className="text-lg font-extrabold text-emerald-600">{(metrics.f1 * 100).toFixed(1)}%</span>
               </div>
             </div>
 
             {/* Plotly Visualizations Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-              <div className="glass-card rounded-2xl p-4 border border-white/10 min-h-[340px] flex items-center justify-center">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 shadow-sm min-h-[340px] flex items-center justify-center">
                 <div ref={matrixPlotRef} className="w-full h-full min-h-[300px]" />
               </div>
 
-              <div className="glass-card rounded-2xl p-4 border border-white/10 min-h-[340px] flex items-center justify-center">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 shadow-sm min-h-[340px] flex items-center justify-center">
                 <div ref={rocPlotRef} className="w-full h-full min-h-[300px]" />
               </div>
             </div>
