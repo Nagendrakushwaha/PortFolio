@@ -36,7 +36,7 @@ export const WebGLFallback: React.FC = () => {
     }));
 
     const render = () => {
-      ctx.fillStyle = 'rgba(2, 4, 10, 0.25)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
       ctx.fillRect(0, 0, width, height);
 
       particles.forEach((p) => {
@@ -72,7 +72,7 @@ export const WebGLFallback: React.FC = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ background: 'radial-gradient(ellipse at center, #070c24 0%, #02040a 100%)' }}
+      style={{ background: 'radial-gradient(ellipse at center, #08080c 0%, #000000 100%)' }}
     />
   );
 };
