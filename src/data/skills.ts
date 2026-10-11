@@ -1,53 +1,84 @@
-import type { SkillCategory } from '../types/portfolio';
+import type { SkillItem } from '../types/portfolio';
 
-export const skillsData: SkillCategory[] = [
-  {
-    categoryName: 'Machine Learning & Predictive Modeling',
-    description: 'Statistical algorithms, gradient boosting, feature engineering, and rigorous validation workflows.',
-    skills: [
-      { name: 'Supervised Learning', tag: 'Core ML', levelDescription: 'Regression, Classification, Decision Trees, Random Forests', associatedProjects: ['Retail Sales Forecasting', 'Credit Card Fraud Detection'] },
-      { name: 'Gradient Boosting Ensembles', tag: 'High Performance', levelDescription: 'XGBoost, LightGBM, CatBoost for structured data', associatedProjects: ['Retail Sales Forecasting', 'Network Intrusion Detection'] },
-      { name: 'Feature Engineering & EDA', tag: 'Data Prep', levelDescription: 'Missing-value imputation, categorical encoding, lag features, rolling windows', associatedProjects: ['UptoSkill Internship', 'Retail Sales Forecasting'] },
-      { name: 'Model Evaluation & Validation', tag: 'Rigorous Metrics', levelDescription: 'ROC-AUC, PR-AUC, Confusion Matrix, Cross-Validation, Class Imbalance Handling (SMOTE)', associatedProjects: ['Network Intrusion Detection', 'Credit Card Fraud Detection'] }
-    ]
-  },
-  {
-    categoryName: 'Deep Learning & Computer Vision',
-    description: 'Neural network design, transfer learning, medical imaging, acoustic signal processing, and visual explainability.',
-    skills: [
-      { name: 'Deep Convolutional Networks (CNN)', tag: 'Vision & Audio', levelDescription: 'ResNet-18, EfficientNet-B0, MobileNetV3-Small, custom 2D-CNNs', associatedProjects: ['SiperVision MedicalVision', 'Speech Emotion Detection'] },
-      { name: 'Model Interpretability & Grad-CAM', tag: 'Explainability', levelDescription: 'Grad-CAM saliency mapping and ground-truth bounding box validation', associatedProjects: ['SiperVision MedicalVision', 'Cognivision AI'] },
-      { name: 'Acoustic Signal Processing', tag: 'Speech AI', levelDescription: '64-band Log-Mel Spectrograms, MFCCs, RMS, ZCR with Librosa & PyTorch', associatedProjects: ['Speech Emotion Detection'] },
-      { name: 'Deep Learning Frameworks', tag: 'Frameworks', levelDescription: 'PyTorch, TensorFlow, Keras, GPU/CPU latency optimization', associatedProjects: ['SiperVision MedicalVision', 'Speech Emotion Detection'] }
-    ]
-  },
-  {
-    categoryName: 'NLP & Conversational AI (RAG / LLMs)',
-    description: 'Text representation, intent understanding, vector retrieval, and safety guardrails.',
-    skills: [
-      { name: 'Grounded RAG Architecture', tag: 'Enterprise AI', levelDescription: 'Vector search, cosine similarity over multi-document chunks, PyMuPDF', associatedProjects: ['Customer Support AI (ShopEase)'] },
-      { name: 'Fine-Grained Intent Classification', tag: 'NLP Core', levelDescription: 'Multiclass intent recognition across 77 classes (Banking77 benchmark)', associatedProjects: ['Customer Support AI (ShopEase)'] },
-      { name: 'Safety Guardrails & Protection', tag: 'Security', levelDescription: 'Prompt-injection filtering, PII/credential masking, human escalation routing', associatedProjects: ['Customer Support AI (ShopEase)'] },
-      { name: 'Text Classification & Normalization', tag: 'NLP Core', levelDescription: 'TF-IDF, Bag-of-Words, Devanagari Unicode processing, Scikit-learn', associatedProjects: ['SMS Spam Detection', 'English-Hindi Translation'] }
-    ]
-  },
-  {
-    categoryName: 'Programming, Data & Core Engineering',
-    description: 'Core software engineering, database querying, business intelligence, and scientific tools.',
-    skills: [
-      { name: 'Python', tag: 'Primary Language', levelDescription: 'Core language for all machine learning pipelines, APIs, and data analysis', associatedProjects: ['All Projects'] },
-      { name: 'SQL & Database Engineering', tag: 'Databases', levelDescription: 'Relational data querying, joins, indexing, PostgreSQL, MySQL', associatedProjects: ['UptoSkill Internship', 'L&T Certification'] },
-      { name: 'C++ & Algorithms', tag: 'Computer Science', levelDescription: 'Data Structures, Algorithms, Object-Oriented Programming (OOP)', associatedProjects: ['Sam Global University'] },
-      { name: 'Business Intelligence & Reporting', tag: 'Analytics', levelDescription: 'Power BI executive dashboards, Microsoft Excel data modeling, Pandas, NumPy', associatedProjects: ['UptoSkill Internship'] }
-    ]
-  },
-  {
-    categoryName: 'API Serving, Deployment & Developer Tools',
-    description: 'Microservice APIs, interactive dashboards, version control, and cloud hosting.',
-    skills: [
-      { name: 'FastAPI & Flask', tag: 'Backend Microservices', levelDescription: 'Asynchronous model inference endpoints, REST APIs, JSON schemas', associatedProjects: ['Customer Support AI', 'SiperVision MedicalVision'] },
-      { name: 'Interactive Dashboards & Web', tag: 'UI & Demos', levelDescription: 'Streamlit, React, Three.js 3D WebGL visualization, Plotly.js', associatedProjects: ['Network Intrusion Detection', 'Movie Recommendation'] },
-      { name: 'Developer Tooling & Cloud', tag: 'DevOps & Git', levelDescription: 'Git, GitHub, VS Code, Jupyter, Google Colab, Docker, Vercel, Render', associatedProjects: ['Customer Support AI', 'All Repositories'] }
-    ]
-  }
+export const skillCategories = [
+  'All',
+  'Programming',
+  'Machine Learning',
+  'Deep Learning',
+  'NLP',
+  'Generative AI',
+  'Data',
+  'Tools',
+] as const;
+
+export type SkillCategoryType = typeof skillCategories[number];
+
+const skill = (name: string, level: string, category: string, description: string): SkillItem => ({
+  name,
+  level,
+  category,
+  description,
+});
+
+export const skills: SkillItem[] = [
+  skill('Python', 'Core', 'Programming', 'Primary language for data, models, and experiments.'),
+  skill('NumPy', 'Core', 'Programming', 'Numerical computing and array-based workflows.'),
+  skill('Pandas', 'Core', 'Programming', 'Data cleaning, transformation, and analysis.'),
+  skill('SciPy', 'Working Knowledge', 'Programming', 'Scientific and statistical computing foundations.'),
+  skill('Matplotlib', 'Working Knowledge', 'Programming', 'Clear visual analysis of data and results.'),
+  skill('Seaborn', 'Working Knowledge', 'Programming', 'Statistical visual exploration.'),
+  skill('Scikit-learn', 'Core', 'Programming', 'Classical machine learning workflows.'),
+  skill('PyTorch', 'Working Knowledge', 'Programming', 'Deep learning experimentation and model building.'),
+  skill('TensorFlow', 'Working Knowledge', 'Programming', 'Exploring deep learning workflows.'),
+  skill('Keras', 'Working Knowledge', 'Programming', 'High-level neural network experimentation.'),
+  skill('Regression', 'Core', 'Machine Learning', 'Predictive modeling foundations.'),
+  skill('Classification', 'Core', 'Machine Learning', 'Supervised learning for practical decisions.'),
+  skill('Clustering', 'Working Knowledge', 'Machine Learning', 'Unsupervised grouping and exploration.'),
+  skill('Ensemble Methods', 'Working Knowledge', 'Machine Learning', 'Combining models for robust predictions.'),
+  skill('XGBoost', 'Working Knowledge', 'Machine Learning', 'Gradient boosting for structured data.'),
+  skill('LightGBM', 'Working Knowledge', 'Machine Learning', 'Efficient gradient boosting exploration.'),
+  skill('CatBoost', 'Working Knowledge', 'Machine Learning', 'Boosting with categorical feature support.'),
+  skill('Feature Engineering', 'Core', 'Machine Learning', 'Turning raw data into useful signals.'),
+  skill('Data Preprocessing', 'Core', 'Machine Learning', 'Preparing data for reliable modeling.'),
+  skill('Model Evaluation', 'Core', 'Machine Learning', 'Comparing models with appropriate evaluation thinking.'),
+  skill('ANN', 'Working Knowledge', 'Deep Learning', 'Artificial neural network foundations.'),
+  skill('CNN', 'Working Knowledge', 'Deep Learning', 'Convolutional architectures and visual patterns.'),
+  skill('RNN', 'Working Knowledge', 'Deep Learning', 'Sequence modeling foundations.'),
+  skill('LSTM', 'Working Knowledge', 'Deep Learning', 'Long-range sequence modeling.'),
+  skill('GRU', 'Working Knowledge', 'Deep Learning', 'Gated recurrent sequence modeling.'),
+  skill('Computer Vision', 'Exploring', 'Deep Learning', 'Visual intelligence and representation learning.'),
+  skill('Transfer Learning', 'Exploring', 'Deep Learning', 'Reusing learned representations.'),
+  skill('NLP', 'Working Knowledge', 'NLP', 'Working with language data and text pipelines.'),
+  skill('Transformers', 'Working Knowledge', 'NLP', 'Exploring modern language architectures.'),
+  skill('Neural Machine Translation', 'Working Knowledge', 'NLP', 'Translation data and sequence-to-sequence concepts.'),
+  skill('English-Hindi Translation', 'Working Knowledge', 'NLP', 'Language work across English and Devanagari text.'),
+  skill('Generative AI', 'Exploring', 'Generative AI', 'Learning how generative systems become useful applications.'),
+  skill('LLM Development', 'Exploring', 'Generative AI', 'Exploring practical large language model workflows.'),
+  skill('RAG', 'Exploring', 'Generative AI', 'Retrieval-augmented generation concepts.'),
+  skill('Prompt Engineering', 'Exploring', 'Generative AI', 'Designing clearer instructions for model behavior.'),
+  skill('Sentence Transformers', 'Exploring', 'Generative AI', 'Semantic representation and similarity.'),
+  skill('Embeddings', 'Exploring', 'Generative AI', 'Representing language for retrieval and comparison.'),
+  skill('Vector Databases', 'Exploring', 'Generative AI', 'Learning storage patterns for semantic retrieval.'),
+  skill('SQL', 'Core', 'Data', 'Querying and reasoning about structured data.'),
+  skill('PostgreSQL', 'Working Knowledge', 'Data', 'Relational data and production-minded SQL.'),
+  skill('MySQL', 'Working Knowledge', 'Data', 'Relational database foundations.'),
+  skill('BigQuery', 'Exploring', 'Data', 'Learning cloud-scale analytical querying.'),
+  skill('Query Optimization', 'Exploring', 'Data', 'Thinking about efficient data access.'),
+  skill('Data Analysis', 'Core', 'Data', 'Turning data into clear observations.'),
+  skill('Data Visualization', 'Core', 'Data', 'Communicating patterns with purposeful visuals.'),
+  skill('Git', 'Core', 'Tools', 'Version control for repeatable work.'),
+  skill('GitHub', 'Core', 'Tools', 'Sharing projects and collaborating in public.'),
+  skill('VS Code', 'Core', 'Tools', 'Primary development environment.'),
+  skill('Jupyter', 'Core', 'Tools', 'Interactive data and model exploration.'),
+  skill('Google Colab', 'Working Knowledge', 'Tools', 'Cloud notebooks for experiments.'),
+  skill('Kaggle', 'Working Knowledge', 'Tools', 'Datasets, notebooks, and practical learning.'),
+  skill('Power BI', 'Exploring', 'Tools', 'Business-facing data visualization.'),
+  skill('Streamlit', 'Working Knowledge', 'Tools', 'Lightweight interfaces for data applications.'),
+  skill('FastAPI', 'Working Knowledge', 'Tools', 'Serving Python capabilities through APIs.'),
+  skill('Docker', 'Exploring', 'Tools', 'Learning portable application environments.'),
+  skill('Netlify', 'Working Knowledge', 'Tools', 'Deploying frontend applications.'),
+  skill('Vercel', 'Working Knowledge', 'Tools', 'Deploying web experiences.'),
 ];
+
+// Re-export as skillsData for backwards compatibility
+export const skillsData = skills;

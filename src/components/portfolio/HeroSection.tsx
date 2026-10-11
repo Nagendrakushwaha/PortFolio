@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Download, FlaskConical, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Download, FlaskConical, ShieldCheck, Sparkles } from 'lucide-react';
 import { profileData } from '../../data/profile';
 
 interface HeroSectionProps {
@@ -70,6 +70,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             >
               <FlaskConical className="w-4 h-4 text-emerald-600" />
               <span>Interactive ML Lab</span>
+            </button>
+
+            <button
+              onClick={() => {
+                const el = document.getElementById('skills');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-5 py-3 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 font-mono text-xs sm:text-sm font-semibold shadow-sm hover:scale-105 transition-all flex items-center space-x-2"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <span>57 Technical Skills</span>
             </button>
 
             {/* Resume Downloads */}

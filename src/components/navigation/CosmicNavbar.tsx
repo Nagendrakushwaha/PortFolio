@@ -122,6 +122,16 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
           </button>
 
           <button
+            onClick={() => handleNavClick(() => scrollToSection('skills'))}
+            className={`px-3 py-1.5 rounded-full text-xs font-mono flex items-center space-x-1.5 transition-all ${
+              isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80' : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Skills</span>
+          </button>
+
+          <button
             onClick={() => handleNavClick(() => scrollToSection('projects'))}
             className={`px-3 py-1.5 rounded-full text-xs font-mono flex items-center space-x-1.5 transition-all ${
               isLight ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80' : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -258,6 +268,15 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
             >
               <Cpu className="w-4 h-4 text-purple-500" />
               <span>AI Laboratory</span>
+            </button>
+            <button
+              onClick={() => handleNavClick(() => scrollToSection('skills'))}
+              className={`flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-mono text-left ${
+                isLight ? 'text-slate-700 hover:bg-slate-100' : 'text-amber-300 hover:bg-amber-500/10'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Technical Skills (57)</span>
             </button>
             <button
               onClick={() => handleNavClick(() => scrollToSection('projects'))}

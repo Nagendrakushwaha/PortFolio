@@ -87,6 +87,15 @@ export interface ProjectData {
   featured: boolean;
 }
 
+export type SkillLevel = 'Core' | 'Working Knowledge' | 'Exploring';
+
+export interface SkillItem {
+  name: string;
+  level: SkillLevel | string;
+  category: string;
+  description: string;
+}
+
 export interface SkillCategory {
   categoryName: string;
   description: string;
