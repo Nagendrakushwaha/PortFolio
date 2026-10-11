@@ -67,7 +67,7 @@ export const MultiverseView: React.FC<MultiverseViewProps> = ({
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full glass-panel border border-cyan-500/30 text-xs font-mono text-cyan-300">
             <Compass className="w-3.5 h-3.5" />
-            <span>MULTIVERSE ORBITAL VIEW</span>
+            <span>AI DOMAINS ORBITAL VIEW</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-display font-bold text-white mt-1">
             Choose a Celestial Domain

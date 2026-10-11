@@ -105,7 +105,7 @@ export const AboutSection: React.FC = () => {
                 <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <span className="w-3 h-3 rounded-full bg-green-500/80" />
                 <span className="text-xs font-mono text-slate-400 pl-2">
-                  nagendra@multiverse:~
+                  nagendra@ai-lab:~
                 </span>
               </div>
               <Terminal className="w-4 h-4 text-cyan-400" />

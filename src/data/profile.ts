@@ -13,7 +13,7 @@ import type { ProfileData } from '../types/portfolio';
 export const profileData: ProfileData = {
   name: "Nagendra Kushwaha",
   shortName: "NK",
-  title: "A JOURNEY THROUGH THE AI MULTIVERSE",
+  title: "AI & DATA SCIENCE PORTFOLIO",
   role: "AI/ML Engineer & Data Scientist",
   direction: "Generative AI / LLM Developer",
   positioning: "AI/ML Engineer • Data Scientist • Generative AI & Deep Learning Specialist",

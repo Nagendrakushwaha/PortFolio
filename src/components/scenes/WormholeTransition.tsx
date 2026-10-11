@@ -73,7 +73,7 @@ export const WormholeTransition: React.FC<WormholeTransitionProps> = ({
             Traversing Einstein-Rosen Bridge
           </p>
           <p className="text-xs text-slate-400">
-            Translating coordinate space to Multiverse Sector 04
+            Translating coordinate space to AI Domains Sector 04
           </p>
         </div>
       </div>
@@ -82,7 +82,7 @@ export const WormholeTransition: React.FC<WormholeTransitionProps> = ({
       <div className="w-full flex items-center justify-between text-xs font-mono text-slate-400">
         <div className="flex items-center space-x-2">
           <Compass className="w-4 h-4 text-cyan-400" />
-          <span>DESTINATION: AI & DATA SCIENCE MULTIVERSE</span>
+          <span>DESTINATION: AI & DATA SCIENCE GALAXY</span>
         </div>
         <div>
           QUANTUM STABILIZATION: ACTIVE

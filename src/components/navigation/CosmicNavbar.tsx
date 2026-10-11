@@ -80,7 +80,7 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
             <span className={`hidden sm:block text-[10px] font-mono ${
               isLight ? 'text-slate-500' : 'text-slate-400'
             }`}>
-              AI MULTIVERSE v2.6
+              AI & DATA SCIENCE v2.6
             </span>
           </div>
         </button>
@@ -102,7 +102,7 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
             }`}
           >
             <Compass className="w-3.5 h-3.5 text-cyan-500" />
-            <span>Multiverse</span>
+            <span>AI Galaxy</span>
           </button>
 
           <button
@@ -248,7 +248,7 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
               }`}
             >
               <Compass className="w-4 h-4 text-cyan-500" />
-              <span>Multiverse Dimensions</span>
+              <span>3D AI Galaxy</span>
             </button>
             <button
               onClick={() => handleNavClick(() => onChangeScene('laboratory'))}
