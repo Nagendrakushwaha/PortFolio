@@ -28,10 +28,10 @@ export const CosmicAwakening: React.FC<CosmicAwakeningProps> = ({
   isMuted,
   onToggleSound,
 }) => {
-  const handleAction = (cb: () => void) => {
+  const handleAction = React.useCallback((cb: () => void) => {
     if (onPlayClick) onPlayClick();
     cb();
-  };
+  }, [onPlayClick]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -42,7 +42,7 @@ export const CosmicAwakening: React.FC<CosmicAwakeningProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onExploreProjects]);
+  }, [handleAction, onExploreProjects]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col justify-between items-center px-4 py-6 sm:px-6 sm:py-8 z-20 pointer-events-none select-none">

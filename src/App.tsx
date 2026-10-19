@@ -41,11 +41,29 @@ export const App: React.FC = () => {
     setActiveScene('multiverse');
   }, [playClick]);
 
+  const scrollToSection = useCallback((id: string) => {
+    if (activeScene !== 'laboratory') {
+      setActiveScene('laboratory');
+      const attemptScroll = (attemptsLeft: number) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        } else if (attemptsLeft > 0) {
+          setTimeout(() => attemptScroll(attemptsLeft - 1), 70);
+        }
+      };
+      setTimeout(() => attemptScroll(6), 50);
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [activeScene]);
+
   // Primary CTA: Explore AI projects directly
   const handleExploreProjects = useCallback(() => {
     playClick();
     scrollToSection('projects');
-  }, [playClick]);
+  }, [playClick, scrollToSection]);
 
   // Secondary CTA: View full portfolio overview
   const handleViewPortfolio = useCallback(() => {
@@ -69,24 +87,6 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setActiveScene('awakening');
   }, [playClick]);
-
-  const scrollToSection = (id: string) => {
-    if (activeScene !== 'laboratory') {
-      setActiveScene('laboratory');
-      const attemptScroll = (attemptsLeft: number) => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
-        } else if (attemptsLeft > 0) {
-          setTimeout(() => attemptScroll(attemptsLeft - 1), 70);
-        }
-      };
-      setTimeout(() => attemptScroll(6), 50);
-    } else {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   return (
     <div className="relative min-h-screen w-full bg-black text-slate-100 overflow-x-hidden">
