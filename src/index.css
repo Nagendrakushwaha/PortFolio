@@ -110,11 +110,23 @@ html, body {
 
 /* Glowing text gradients */
 .text-glow-cyan {
-  text-shadow: 0 0 12px rgba(0, 242, 254, 0.6), 0 0 24px rgba(0, 242, 254, 0.3);
+  text-shadow: 0 0 12px rgba(0, 242, 254, 0.45), 0 0 24px rgba(0, 242, 254, 0.2);
 }
 
 .text-glow-violet {
-  text-shadow: 0 0 12px rgba(192, 132, 252, 0.6), 0 0 24px rgba(192, 132, 252, 0.3);
+  text-shadow: 0 0 12px rgba(192, 132, 252, 0.45), 0 0 24px rgba(192, 132, 252, 0.2);
+}
+
+/* Fluid responsive hero typography */
+.hero-heading {
+  font-size: clamp(2.25rem, 6.2vw + 0.4rem, 5.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.hero-subheading {
+  font-size: clamp(0.9rem, 1.4vw + 0.45rem, 1.25rem);
+  line-height: 1.4;
 }
 
 /* Light Laboratory Surfaces & Micro-Grid */

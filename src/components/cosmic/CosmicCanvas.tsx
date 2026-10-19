@@ -87,11 +87,11 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
     scene.add(dirLight2);
 
     // 5. Cosmic Objects
-    const starfield = new Starfield(4000);
+    const starfield = new Starfield(2200);
     scene.add(starfield.group);
     starfieldRef.current = starfield;
 
-    const galaxy = new GalaxySpiral(7000);
+    const galaxy = new GalaxySpiral(3600);
     scene.add(galaxy.group);
     galaxyRef.current = galaxy;
 
@@ -151,13 +151,13 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
       // Smooth mouse lerp for parallax
       mouseRef.current.lerp(targetMouseRef.current, delta * 3);
 
-      // Starfield update
-      if (starfieldRef.current) {
+      // Starfield update (paused if user prefers reduced motion)
+      if (starfieldRef.current && !reducedMotion) {
         starfieldRef.current.update(delta, speedMultiplierRef.current);
       }
 
-      // Galaxy update
-      if (galaxyRef.current) {
+      // Galaxy update (paused if user prefers reduced motion)
+      if (galaxyRef.current && !reducedMotion) {
         galaxyRef.current.update(delta);
       }
 
@@ -173,8 +173,8 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
 
       // Subtle mouse camera parallax (unless reduced motion is active)
       if (cameraRef.current && !reducedMotion) {
-        cameraRef.current.rotation.y = -mouseRef.current.x * 0.05;
-        cameraRef.current.rotation.x = mouseRef.current.y * 0.05;
+        cameraRef.current.rotation.y = -mouseRef.current.x * 0.035;
+        cameraRef.current.rotation.x = mouseRef.current.y * 0.035;
       }
 
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
@@ -219,13 +219,13 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
     if (activeScene === 'awakening') {
       wormhole.setActive(false);
       worlds.setActive(false);
-      galaxy.setOpacity(0.85);
+      galaxy.setOpacity(0.60);
 
-      gsap.to(speedMultiplierRef, { current: 1.0, duration: 1.5 });
+      gsap.to(speedMultiplierRef, { current: 0.7, duration: 1.5 });
       gsap.to(camera.position, {
         x: 0,
         y: 0,
-        z: 16,
+        z: 16.5,
         duration: reducedMotion ? 0.1 : 2.0,
         ease: 'power2.out',
       });
@@ -274,9 +274,9 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
     } else if (activeScene === 'laboratory') {
       wormhole.setActive(false);
       worlds.setActive(false);
-      galaxy.setOpacity(0.25);
+      galaxy.setOpacity(0.22);
 
-      gsap.to(speedMultiplierRef, { current: 0.6, duration: 1.0 });
+      gsap.to(speedMultiplierRef, { current: 0.5, duration: 1.0 });
       gsap.to(camera.position, {
         x: 0,
         y: 1.2,
@@ -290,7 +290,9 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 w-full h-full pointer-events-auto z-0 overflow-hidden"
+      className={`fixed inset-0 w-full h-full z-0 overflow-hidden ${
+        activeScene === 'multiverse' ? 'pointer-events-auto' : 'pointer-events-none'
+      }`}
       style={{ touchAction: 'none' }}
     />
   );

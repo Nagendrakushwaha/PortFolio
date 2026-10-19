@@ -41,9 +41,16 @@ export const App: React.FC = () => {
     setActiveScene('multiverse');
   }, [playClick]);
 
-  // Direct portfolio access
-  const handleExploreDirectly = useCallback(() => {
+  // Primary CTA: Explore AI projects directly
+  const handleExploreProjects = useCallback(() => {
     playClick();
+    scrollToSection('projects');
+  }, [playClick]);
+
+  // Secondary CTA: View full portfolio overview
+  const handleViewPortfolio = useCallback(() => {
+    playClick();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setActiveScene('laboratory');
   }, [playClick]);
 
@@ -66,10 +73,15 @@ export const App: React.FC = () => {
   const scrollToSection = (id: string) => {
     if (activeScene !== 'laboratory') {
       setActiveScene('laboratory');
-      setTimeout(() => {
+      const attemptScroll = (attemptsLeft: number) => {
         const el = document.getElementById(id);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 300);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        } else if (attemptsLeft > 0) {
+          setTimeout(() => attemptScroll(attemptsLeft - 1), 70);
+        }
+      };
+      setTimeout(() => attemptScroll(6), 50);
     } else {
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -109,8 +121,9 @@ export const App: React.FC = () => {
       {/* Dynamic Cinematic Scenes */}
       {activeScene === 'awakening' && (
         <CosmicAwakening
+          onExploreProjects={handleExploreProjects}
+          onViewPortfolio={handleViewPortfolio}
           onEnterUniverse={handleEnterUniverse}
-          onExploreDirectly={handleExploreDirectly}
           onPlayClick={playClick}
           isMuted={isMuted}
           onToggleSound={toggleSound}

@@ -17,7 +17,7 @@ export class Starfield {
   private count: number;
   private initialPositions: Float32Array;
 
-  constructor(count: number = 4500) {
+  constructor(count: number = 2200) {
     this.group = new THREE.Group();
     this.count = count;
 
@@ -37,7 +37,7 @@ export class Starfield {
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
       // Cylindrical / spherical spread along z-axis for deep travel
-      const radius = 30 + Math.random() * 250;
+      const radius = 35 + Math.random() * 260;
       const theta = Math.random() * Math.PI * 2;
       const z = (Math.random() - 0.5) * 800;
 
@@ -67,9 +67,9 @@ export class Starfield {
     const ctx = canvas.getContext('2d');
     if (ctx) {
       const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-      gradient.addColorStop(0, 'rgba(255,255,255,1)');
-      gradient.addColorStop(0.3, 'rgba(255,255,255,0.8)');
-      gradient.addColorStop(0.7, 'rgba(120,200,255,0.2)');
+      gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+      gradient.addColorStop(0.3, 'rgba(224,242,254,0.6)');
+      gradient.addColorStop(0.7, 'rgba(56,189,248,0.15)');
       gradient.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 32, 32);
@@ -77,11 +77,11 @@ export class Starfield {
     const starTexture = new THREE.CanvasTexture(canvas);
 
     this.starMaterial = new THREE.PointsMaterial({
-      size: 1.8,
+      size: 1.25,
       vertexColors: true,
       map: starTexture,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.75,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -107,7 +107,7 @@ export class Starfield {
     const positionAttr = this.starGeometry.attributes.position as THREE.BufferAttribute;
     const array = positionAttr.array as Float32Array;
 
-    const zSpeed = (speedMultiplier > 2 ? 65 : 1.2) * speedMultiplier * delta * 60;
+    const zSpeed = (speedMultiplier > 2 ? 65 : 0.45) * speedMultiplier * delta * 60;
 
     for (let i = 0; i < this.count; i++) {
       const i3 = i * 3;
@@ -117,7 +117,7 @@ export class Starfield {
       if (array[i3 + 2] > 200) {
         array[i3 + 2] = -600;
         // slightly jitter radial positions for variety
-        const radius = 20 + Math.random() * 240;
+        const radius = 25 + Math.random() * 240;
         const theta = Math.random() * Math.PI * 2;
         array[i3] = Math.cos(theta) * radius;
         array[i3 + 1] = Math.sin(theta) * radius;
@@ -127,10 +127,10 @@ export class Starfield {
 
     // Twinkle & size stretch during warp
     if (speedMultiplier > 2) {
-      this.starMaterial.size = Math.min(3.6, 1.8 * (speedMultiplier * 0.4));
+      this.starMaterial.size = Math.min(3.0, 1.25 * (speedMultiplier * 0.4));
     } else {
-      this.starMaterial.size = 1.8;
-      this.group.rotation.z += 0.0003 * delta * 60;
+      this.starMaterial.size = 1.25;
+      this.group.rotation.z += 0.00015 * delta * 60;
     }
 
     // Occasional shooting star
