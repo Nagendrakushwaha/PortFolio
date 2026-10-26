@@ -31,24 +31,22 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
       <button
         onClick={onToggle}
         aria-label="Toggle Mr. Kennedy AI Assistant"
-        className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-full p-[2px] transition-all duration-300 hover:scale-110 shadow-2xl focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
-          isOpen
+        className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-full p-[2px] transition-all duration-300 hover:scale-110 shadow-2xl focus:outline-none focus:ring-2 focus:ring-cyan-400 ${isOpen
             ? 'bg-gradient-to-r from-rose-500 to-indigo-600 shadow-indigo-500/30'
             : 'bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-600 shadow-cyan-500/30'
-        }`}
+          }`}
       >
         {/* Pulsing ring if speaking or listening */}
         {(isSpeaking || isListening) && (
           <div
-            className={`absolute -inset-1 rounded-full animate-ping opacity-60 ${
-              isSpeaking ? 'bg-cyan-400' : 'bg-rose-500'
-            }`}
+            className={`absolute -inset-1 rounded-full animate-ping opacity-60 ${isSpeaking ? 'bg-cyan-400' : 'bg-rose-500'
+              }`}
           />
         )}
 
         <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-tr from-cyan-900/30 to-indigo-900/30" />
-          
+
           {isOpen ? (
             <MessageSquare className="w-5 h-5 text-cyan-300 relative z-10" />
           ) : (
@@ -61,13 +59,12 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
 
         {/* Live status dot */}
         <span
-          className={`absolute top-0 right-0 w-3 h-3 rounded-full ring-2 ring-slate-950 ${
-            isSpeaking
+          className={`absolute top-0 right-0 w-3 h-3 rounded-full ring-2 ring-slate-950 ${isSpeaking
               ? 'bg-cyan-400 animate-ping'
               : isListening
-              ? 'bg-rose-500 animate-pulse'
-              : 'bg-emerald-400'
-          }`}
+                ? 'bg-rose-500 animate-pulse'
+                : 'bg-emerald-400'
+            }`}
         />
       </button>
     </div>

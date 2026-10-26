@@ -49,11 +49,10 @@ export const KennedyAudioWaveform: React.FC<KennedyAudioWaveformProps> = ({
         {bars.map((h, idx) => (
           <div
             key={idx}
-            className={`w-1 rounded-full transition-all duration-75 ${
-              isSpeaking
+            className={`w-1 rounded-full transition-all duration-75 ${isSpeaking
                 ? 'bg-gradient-to-t from-cyan-500 to-indigo-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]'
                 : 'bg-gradient-to-t from-rose-500 to-pink-400 shadow-[0_0_8px_rgba(244,63,94,0.6)]'
-            }`}
+              }`}
             style={{ height: `${h}%` }}
           />
         ))}

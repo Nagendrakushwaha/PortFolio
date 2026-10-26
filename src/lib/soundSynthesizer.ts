@@ -164,12 +164,12 @@ class SoundSynthesizer {
       }
       setTimeout(() => {
         if (this.ambientOsc1) {
-          try { this.ambientOsc1.stop(); } catch {}
+          try { this.ambientOsc1.stop(); } catch { }
           this.ambientOsc1.disconnect();
           this.ambientOsc1 = null;
         }
         if (this.ambientOsc2) {
-          try { this.ambientOsc2.stop(); } catch {}
+          try { this.ambientOsc2.stop(); } catch { }
           this.ambientOsc2.disconnect();
           this.ambientOsc2 = null;
         }
@@ -179,5 +179,7 @@ class SoundSynthesizer {
     }
   }
 }
+
+export const soundSynth = new SoundSynthesizer();
 
 export const soundSynth = new SoundSynthesizer();

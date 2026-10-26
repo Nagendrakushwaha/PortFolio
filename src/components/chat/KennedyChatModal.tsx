@@ -308,15 +308,14 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
       role="dialog"
       aria-labelledby="kennedy-title"
       aria-modal="true"
-      className={`fixed z-50 transition-all duration-300 ${
-        isMinimized
+      className={`fixed z-50 transition-all duration-300 ${isMinimized
           ? 'bottom-6 right-6 w-72 sm:w-80 h-16'
           : 'inset-x-3 bottom-3 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[460px] md:w-[500px] h-[620px] max-h-[92vh]'
-      }`}
+        }`}
     >
       {/* Main Glassmorphic Panel Container */}
       <div className="relative w-full h-full rounded-2xl bg-slate-950/95 border border-cyan-500/30 shadow-2xl shadow-cyan-950/50 backdrop-blur-xl flex flex-col overflow-hidden text-slate-100">
-        
+
         {/* Top Glow Accent Line */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500" />
 
@@ -350,11 +349,10 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
             {/* Toggle Voice Output Mute */}
             <button
               onClick={toggleVoiceOutput}
-              className={`p-1.5 rounded-lg border transition-all ${
-                isVoiceOutputEnabled
+              className={`p-1.5 rounded-lg border transition-all ${isVoiceOutputEnabled
                   ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20'
                   : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-              }`}
+                }`}
               title={isVoiceOutputEnabled ? 'Mute Voice Output' : 'Unmute Voice Output'}
             >
               {isVoiceOutputEnabled ? (
@@ -367,11 +365,10 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
             {/* Voice Settings */}
             <button
               onClick={() => setShowSettings((prev) => !prev)}
-              className={`p-1.5 rounded-lg border transition-all ${
-                showSettings
+              className={`p-1.5 rounded-lg border transition-all ${showSettings
                   ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
                   : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-              }`}
+                }`}
               title="Voice & Speech Settings"
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -522,20 +519,18 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                 return (
                   <div
                     key={msg.id}
-                    className={`flex items-start space-x-2.5 ${
-                      isAssistant ? 'justify-start' : 'justify-end'
-                    }`}
+                    className={`flex items-start space-x-2.5 ${isAssistant ? 'justify-start' : 'justify-end'
+                      }`}
                   >
                     {isAssistant && (
                       <KennedyAssistantAvatar size="sm" isSpeaking={isSpeaking} />
                     )}
 
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3.5 space-y-2 shadow-sm ${
-                        isAssistant
+                      className={`max-w-[85%] rounded-2xl p-3.5 space-y-2 shadow-sm ${isAssistant
                           ? 'bg-slate-900/90 border border-white/10 text-slate-200'
                           : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium self-end rounded-tr-sm'
-                      }`}
+                        }`}
                     >
                       {/* Message Content */}
                       <div className="space-y-1">
@@ -673,11 +668,10 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                         startListening();
                       }
                     }}
-                    className={`p-2.5 rounded-full border transition-all ${
-                      isListening
+                    className={`p-2.5 rounded-full border transition-all ${isListening
                         ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-500/40 animate-pulse'
                         : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-cyan-300'
-                    }`}
+                      }`}
                     title={isListening ? 'Stop Listening' : 'Speak to Mr. Kennedy (AI Voice Assistant)'}
                   >
                     {isListening ? (

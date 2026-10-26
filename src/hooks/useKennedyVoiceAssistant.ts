@@ -81,13 +81,13 @@ export function useKennedyVoiceAssistant(options: UseKennedyVoiceAssistantOption
     if (!voices || voices.length === 0) return;
 
     const maleKeywords = [
-      'david', 'mark', 'george', 'james', 'daniel', 'alex', 'fred', 'oliver', 
+      'david', 'mark', 'george', 'james', 'daniel', 'alex', 'fred', 'oliver',
       'arthur', 'rishi', 'guy', 'male', 'richard', 'thomas', 'brian', 'steven', 'tom'
     ];
 
     const femaleKeywords = [
-      'female', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'moira', 
-      'fiona', 'tessa', 'siri', 'veena', 'catherine', 'hazel', 'susan', 'allison', 
+      'female', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'moira',
+      'fiona', 'tessa', 'siri', 'veena', 'catherine', 'hazel', 'susan', 'allison',
       'ava', 'clara', 'eva', 'shelby', 'heera', 'priya', 'kalpana', 'swara'
     ];
 
@@ -296,7 +296,7 @@ export function useKennedyVoiceAssistant(options: UseKennedyVoiceAssistantOption
         if (currentFinal) {
           setTranscript(currentFinal);
           setInterimTranscript('');
-          
+
           // Prevent duplicate submissions
           if (!submissionLockRef.current && onTranscriptFinal) {
             submissionLockRef.current = true;
