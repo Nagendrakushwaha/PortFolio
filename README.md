@@ -1,4 +1,4 @@
-# NAGENDRA KUSHWAHA — PREMIUM AI PORTFOLIO + FEMALE VOICE AI ASSISTANT
+# NAGENDRA KUSHWAHA — PREMIUM AI PORTFOLIO + MR. KENNEDY VOICE AI ASSISTANT
 ### AI/ML Engineer • Data Scientist • Generative AI & Deep Learning Specialist
 **Live Deployment**: [port-folio-nu-tawny.vercel.app](https://port-folio-nu-tawny.vercel.app/) • **GitHub**: [github.com/Nagendrakushwaha](https://github.com/Nagendrakushwaha)
 
@@ -8,27 +8,27 @@
 
 This is the production-grade, cinematic AI portfolio and technical showcase for **Nagendra Kushwaha**, an AI/ML Engineer and Data Scientist based in Bhopal, Madhya Pradesh, India.
 
-Rather than a static card layout, the application combines:
+The application combines:
 1. **A Cinematic AI Multiverse Experience**: A science-fiction-inspired 3D journey through cosmic depth, an Einstein-Rosen wormhole bridge, interactive celestial worlds, and a high-tech AI Laboratory.
-2. **Nova — Intelligent Female Voice AI Assistant**: A conversational assistant with bidirectional voice interaction (Speech-to-Text and natural feminine Text-to-Speech), grounded in 100% verified facts from Nagendra's academic background, professional experience, and machine learning projects.
+2. **Mr. Kennedy — Intelligent Two-Way Voice AI Assistant**: A conversational assistant with bidirectional voice interaction (Speech-to-Text and natural Text-to-Speech), grounded in 100% verified facts from Nagendra's academic background, professional experience, and machine learning projects.
 3. **12 Verified Real-World AI/ML Projects**: Complete case studies covering problem statements, data provenance, model architectures, reproducible benchmarks, limitations, and open-source GitHub repositories.
 4. **Interactive ML Laboratory**: In-browser empirical exploration featuring real SMS NLP classification, calibrated cardiovascular risk scoring, CIC-IDS2017 network flow anomaly detection, and interactive Plotly confusion matrices with dynamic ROC curve threshold tuning.
 
 ---
 
-## 🎙️ Nova — The Female Voice AI Assistant
+## 🎙️ Mr. Kennedy — The Conversational Voice AI Assistant
 
-Nova is an AI assistant representing Nagendra's portfolio, engineered to help recruiters, engineering leaders, and collaborators explore his technical profile and projects.
+Mr. Kennedy is an AI assistant representing Nagendra's portfolio, engineered to help recruiters, engineering leaders, and collaborators explore his technical profile and projects through natural voice or text conversations.
 
 ### Key Capabilities:
-- **Natural-Sounding Female Voice**: Automatically discovers and utilizes high-quality female English voices available on the visitor's operating system (e.g., Microsoft Zira/Jenny, Samantha, Victoria, Google UK English Female), configured with warm, natural conversational prosody.
+- **Natural, Confident Voice**: Evaluates and utilizes high-quality English voices available on the visitor's operating system (e.g., Microsoft David/George/Mark, Google UK English Male, Daniel, Google US English), configured with professional, conversational prosody.
 - **Bidirectional Voice Interaction**:
   - **Speech-to-Text (STT)**: Visitors can click the microphone button to ask questions verbally, with live interim transcription and visual feedback.
-  - **Text-to-Speech (TTS)**: Nova speaks answers aloud with female voice synthesis.
-- **Reactive Audio Waveform**: A holographic frequency visualizer pulses in real-time in sync with active speech, remaining calm when no audio is playing.
+  - **Text-to-Speech (TTS)**: Mr. Kennedy speaks answers aloud with natural voice synthesis.
+- **Audio-Reactive Holographic Waveform**: A frequency visualizer pulses in real-time in sync with active speech, remaining calm when no audio is playing.
 - **Interruption & Control**: Clicking the microphone or sending a message immediately cancels current speech synthesis to prevent overlapping audio. Visitors can also mute/unmute voice output, stop speaking, replay any response, or copy answers.
-- **Grounded Knowledge Base**: Nova queries a structured, factual knowledge engine grounded in Nagendra's verified profile data (Sam Global University, CGPA 7.85/10, UptoSkill internship, 12 project case studies).
-- **Honest Uncertainty & Data Integrity**: When asked about unverified claims or metrics, Nova explicitly clarifies what has been empirically verified and what remains unverified, never fabricating numbers.
+- **Grounded Knowledge Base**: Mr. Kennedy queries a structured, factual knowledge engine grounded in Nagendra's verified profile data (Sam Global University, CGPA 7.85/10, UptoSkill internship, 12 project case studies).
+- **Honest Uncertainty & Data Integrity**: When asked about unverified claims or metrics, Mr. Kennedy explicitly clarifies what has been empirically verified and what remains unverified, never fabricating numbers.
 - **Interactive In-Chat Deep Actions**: Assistant answers contain clickable action buttons that trigger real application state transitions:
   - Open project case study modals (`customer-support-ai`, `speech-emotion-detection`, etc.)
   - Open open-source GitHub repositories and live deployments
@@ -98,8 +98,8 @@ Located directly inside the portfolio (Section `Scene 07: Interactive ML Lab`):
 
 - **Frontend Core**: React 19, TypeScript, Vite
 - **3D Graphics & Shaders**: Three.js (Instanced Buffers, ACES Filmic Tone Mapping, Raycasting)
-- **Voice & Speech AI**: Web Speech API (`speechSynthesis`, `SpeechRecognition` / `webkitSpeechRecognition`), female voice selector, reactive audio waveform visualizer
-- **Conversational Engine**: Grounded Nova Knowledge Engine (`novaKnowledgeEngine.ts`) with zero external dependency fallback
+- **Voice & Speech AI**: Web Speech API (`speechSynthesis`, `SpeechRecognition` / `webkitSpeechRecognition`), Mr. Kennedy voice assistant, reactive audio visualizer
+- **Conversational Engine**: Grounded Kennedy Knowledge Engine (`kennedyKnowledgeEngine.ts`) with zero external dependency fallback
 - **Data Visualizations**: Plotly.js (`plotly.js-dist-min`)
 - **Animations & Choreography**: GSAP 3.15 (GreenSock)
 - **Styling**: Tailwind CSS v3, Custom Glassmorphism, Responsive CSS Grid
@@ -147,10 +147,10 @@ cp .env.example .env
 | `VITE_CONTACT_EMAIL` | Verified contact email | `shibbuk707@gmail.com` |
 | `VITE_GITHUB_URL` | Verified GitHub URL | `https://github.com/Nagendrakushwaha` |
 | `VITE_LINKEDIN_URL` | Verified LinkedIn URL | `https://linkedin.com/in/nagendra-kushwaha-165ba2296` |
-| `VITE_ASSISTANT_NAME` | Configurable Assistant Name | `Nova` |
-| `VITE_DEFAULT_VOICE_GENDER` | Default voice synthesis gender | `female` |
+| `VITE_ASSISTANT_NAME` | Configurable Assistant Name | `Mr. Kennedy` |
+| `VITE_DEFAULT_VOICE_GENDER` | Default voice synthesis gender | `male` |
 
-All core capabilities (including 3D Multiverse, Interactive ML Lab, and Nova Female Voice Assistant) work client-side with **zero required API keys**.
+All core capabilities (including 3D Multiverse, Interactive ML Lab, and Mr. Kennedy Voice Assistant) work client-side with **zero required API keys**.
 
 ---
 

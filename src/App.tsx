@@ -8,8 +8,8 @@ import { WormholeTransition } from './components/scenes/WormholeTransition';
 import { MultiverseView } from './components/scenes/MultiverseView';
 import { AILaboratory } from './components/scenes/AILaboratory';
 import { ProjectModal } from './components/portfolio/ProjectModal';
-import { NovaChatModal } from './components/chat/NovaChatModal';
-import { NovaFloatingLauncher } from './components/chat/NovaFloatingLauncher';
+import { KennedyChatModal } from './components/chat/KennedyChatModal';
+import { KennedyFloatingLauncher } from './components/chat/KennedyFloatingLauncher';
 import { projectsData } from './data/projects';
 import { useAudio } from './hooks/useAudio';
 import { useReducedMotion } from './hooks/useReducedMotion';
@@ -20,7 +20,7 @@ export const App: React.FC = () => {
   const [selectedWorld, setSelectedWorld] = useState<MultiverseWorldId | null>(null);
   const [hoveredWorld, setHoveredWorld] = useState<MultiverseWorldId | null>(null);
 
-  // Nova AI Voice Assistant State
+  // Mr. Kennedy AI Voice Assistant State
   const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
   const [globalModalProject, setGlobalModalProject] = useState<ProjectData | null>(null);
 
@@ -200,14 +200,14 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Persistent Floating Nova Launcher across all scenes */}
-      <NovaFloatingLauncher
+      {/* Persistent Floating Mr. Kennedy Launcher across all scenes */}
+      <KennedyFloatingLauncher
         isOpen={isAssistantOpen}
         onToggle={handleToggleAssistant}
       />
 
-      {/* Nova AI Voice Assistant Modal */}
-      <NovaChatModal
+      {/* Mr. Kennedy AI Voice Assistant Modal */}
+      <KennedyChatModal
         isOpen={isAssistantOpen}
         onClose={handleCloseAssistant}
         onOpenProjectModal={handleOpenProjectModal}
@@ -215,7 +215,7 @@ export const App: React.FC = () => {
         onOpenLabTab={handleOpenLabTab}
       />
 
-      {/* Global Project Case Study Modal (Triggerable from Nova or anywhere) */}
+      {/* Global Project Case Study Modal (Triggerable from Mr. Kennedy or anywhere) */}
       {globalModalProject && (
         <ProjectModal
           project={globalModalProject}

@@ -174,9 +174,9 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
           </button>
         </nav>
 
-        {/* Right Controls: Nova AI Voice, Sound Toggle & External Profiles */}
+        {/* Right Controls: Mr. Kennedy AI Voice, Sound Toggle & External Profiles */}
         <div className="pointer-events-auto flex items-center space-x-2">
-          {/* Nova Voice AI Quick Access Button */}
+          {/* Mr. Kennedy Voice AI Quick Access Button */}
           {onOpenAssistant && (
             <button
               onClick={() => {
@@ -188,11 +188,11 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
                   ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-indigo-500/20 hover:scale-105'
                   : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 hover:border-cyan-400 hover:scale-105 shadow-glow-cyan'
               }`}
-              title="Talk with Nova AI Voice Assistant"
+              title="Talk with Mr. Kennedy (AI Voice Assistant)"
             >
               <Sparkles className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
-              <span className="hidden sm:inline">Nova Voice AI</span>
-              <span className="sm:hidden">Nova AI</span>
+              <span className="hidden sm:inline">Mr. Kennedy (Voice AI)</span>
+              <span className="sm:hidden">Mr. Kennedy</span>
             </button>
           )}
 
@@ -283,7 +283,7 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
-                <span>Talk to Nova (AI Voice)</span>
+                <span>Talk to Mr. Kennedy (AI Voice)</span>
               </button>
             )}
             <button
