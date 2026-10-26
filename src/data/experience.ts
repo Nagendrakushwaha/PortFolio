@@ -5,7 +5,7 @@ export const experienceData: ExperienceItem[] = [
     type: 'internship',
     role: 'Data Analytics Intern',
     organization: 'UptoSkill',
-    period: 'Dec 2025 – Mar 2026',
+    period: '13 Dec 2025 – 13 Mar 2026',
     highlights: [
       'Cleaned, transformed, and performed exploratory data analysis (EDA) on structured datasets using Python, Pandas, and NumPy to identify critical business patterns.',
       'Engineered robust preprocessing pipelines for missing-value handling, categorical encoding, and feature transformation to improve data quality for downstream modeling.',
@@ -18,11 +18,12 @@ export const experienceData: ExperienceItem[] = [
     type: 'virtual_experience',
     role: 'Data Science Virtual Experience Program',
     organization: 'Boston Consulting Group (BCG) — Forage',
-    period: 'Completed',
+    period: 'Completed Tasks Before Deadline',
     highlights: [
       'Conducted business case simulation analyzing real-world customer churn and financial indicators.',
       'Performed exploratory data analysis (EDA), customer feature engineering, and model evaluation in Python.',
-      'Formulated actionable commercial recommendations and synthesized data-driven business presentations.'
+      'Formulated actionable commercial recommendations and synthesized data-driven business presentations.',
+      'Completed project tasks through Forage virtual experience (distinguished from full-time employment).'
     ],
     skillsUsed: ['Python', 'Exploratory Data Analysis', 'Customer Analytics', 'Business Intelligence', 'Feature Engineering'],
     isEmployment: false
@@ -46,11 +47,23 @@ export const experienceData: ExperienceItem[] = [
     organization: 'Sam Global University, Bhopal, Madhya Pradesh, India',
     period: '2023 – 2027 (CGPA: 7.85 / 10)',
     highlights: [
-      'Final-year undergraduate with focused coursework in Data Structures, Algorithms, Discrete Mathematics, Database Management Systems (DBMS), and Operating Systems.',
-      'Specialized engineering focus in Machine Learning, Deep Learning, Natural Language Processing, and Artificial Intelligence.',
-      'Independent research in acoustic feature extraction, grounded RAG architectures, and explainable medical computer vision.'
+      'Final-year Computer Science Engineering student specializing in Machine Learning, Deep Learning, Natural Language Processing, and Artificial Intelligence.',
+      'Coursework in Data Structures, Algorithms, Discrete Mathematics, Database Management Systems (DBMS), and Operating Systems.',
+      'Hands-on empirical research in acoustic feature extraction, grounded RAG architectures, and explainable medical computer vision.'
     ],
     skillsUsed: ['C / C++', 'Python', 'Data Structures', 'Algorithms', 'DBMS', 'Mathematics for Machine Learning'],
+    isEmployment: false
+  },
+  {
+    type: 'academic',
+    role: 'Higher Secondary School Education',
+    organization: 'Government Higher Secondary School, Kannoudhi, Shahdol, Madhya Pradesh',
+    period: 'Completed',
+    highlights: [
+      'Strong foundational focus in physical sciences, mathematics, and analytical problem-solving.',
+      'Developed early passion for computer engineering and algorithms.'
+    ],
+    skillsUsed: ['Mathematics', 'Science', 'Analytical Thinking', 'Computer Foundations'],
     isEmployment: false
   }
 ];

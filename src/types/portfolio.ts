@@ -37,6 +37,8 @@ export interface ProfileData {
     period: string;
     location?: string;
     cgpa?: string;
+    schoolName?: string;
+    schoolLocation?: string;
   };
   careerInterests: string[];
   objective: string;

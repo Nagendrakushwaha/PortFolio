@@ -60,7 +60,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               onClick={onExploreProjects}
               className="px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-mono text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105 transition-all flex items-center space-x-2"
             >
-              <span>Explore 10 Projects</span>
+              <span>Explore Projects</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

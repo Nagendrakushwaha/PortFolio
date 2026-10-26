@@ -45,7 +45,7 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
           Real AI Systems & Empirical Architectures
         </h2>
         <p className="text-sm font-mono text-slate-600">
-          10 verified projects with real benchmarks, model architectures, and open-source repositories.
+          {projectsData.length} verified projects with real benchmarks, model architectures, and open-source repositories.
         </p>
       </div>
 

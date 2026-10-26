@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import type { SceneType, MultiverseWorldId } from './types/portfolio';
+import type { SceneType, MultiverseWorldId, ProjectData } from './types/portfolio';
 import { CosmicCanvas } from './components/cosmic/CosmicCanvas';
 import { WebGLFallback } from './components/cosmic/WebGLFallback';
 import { CosmicNavbar } from './components/navigation/CosmicNavbar';
@@ -7,6 +7,10 @@ import { CosmicAwakening } from './components/scenes/CosmicAwakening';
 import { WormholeTransition } from './components/scenes/WormholeTransition';
 import { MultiverseView } from './components/scenes/MultiverseView';
 import { AILaboratory } from './components/scenes/AILaboratory';
+import { ProjectModal } from './components/portfolio/ProjectModal';
+import { NovaChatModal } from './components/chat/NovaChatModal';
+import { NovaFloatingLauncher } from './components/chat/NovaFloatingLauncher';
+import { projectsData } from './data/projects';
 import { useAudio } from './hooks/useAudio';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useWebGLSupport } from './hooks/useWebGLSupport';
@@ -15,6 +19,10 @@ export const App: React.FC = () => {
   const [activeScene, setActiveScene] = useState<SceneType>('awakening');
   const [selectedWorld, setSelectedWorld] = useState<MultiverseWorldId | null>(null);
   const [hoveredWorld, setHoveredWorld] = useState<MultiverseWorldId | null>(null);
+
+  // Nova AI Voice Assistant State
+  const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
+  const [globalModalProject, setGlobalModalProject] = useState<ProjectData | null>(null);
 
   const { isMuted, toggleSound, playClick, playPlanetHover, playWarp } = useAudio();
   const prefersReducedMotion = useReducedMotion();
@@ -88,6 +96,35 @@ export const App: React.FC = () => {
     setActiveScene('awakening');
   }, [playClick]);
 
+  // Assistant callbacks
+  const handleOpenAssistant = useCallback(() => {
+    playClick();
+    setIsAssistantOpen(true);
+  }, [playClick]);
+
+  const handleCloseAssistant = useCallback(() => {
+    setIsAssistantOpen(false);
+  }, []);
+
+  const handleToggleAssistant = useCallback(() => {
+    playClick();
+    setIsAssistantOpen((prev) => !prev);
+  }, [playClick]);
+
+  const handleOpenProjectModal = useCallback((slugOrId: string) => {
+    const found = projectsData.find((p) => p.id === slugOrId || p.slug === slugOrId);
+    if (found) {
+      setGlobalModalProject(found);
+    } else {
+      scrollToSection('projects');
+    }
+  }, [scrollToSection]);
+
+  const handleOpenLabTab = useCallback((tab: string) => {
+    scrollToSection('mllab');
+    window.dispatchEvent(new CustomEvent('switch-ml-lab-tab', { detail: { tab } }));
+  }, [scrollToSection]);
+
   return (
     <div className="relative min-h-screen w-full bg-black text-slate-100 overflow-x-hidden">
       {/* 3D Cosmic WebGL Background or 2D Fallback */}
@@ -115,6 +152,7 @@ export const App: React.FC = () => {
           isMuted={isMuted}
           onToggleSound={toggleSound}
           onPlayClick={playClick}
+          onOpenAssistant={handleOpenAssistant}
         />
       )}
 
@@ -159,6 +197,33 @@ export const App: React.FC = () => {
           onExploreProjects={() => scrollToSection('projects')}
           onExploreLab={() => scrollToSection('mllab')}
           onContact={() => scrollToSection('contact')}
+        />
+      )}
+
+      {/* Persistent Floating Nova Launcher across all scenes */}
+      <NovaFloatingLauncher
+        isOpen={isAssistantOpen}
+        onToggle={handleToggleAssistant}
+      />
+
+      {/* Nova AI Voice Assistant Modal */}
+      <NovaChatModal
+        isOpen={isAssistantOpen}
+        onClose={handleCloseAssistant}
+        onOpenProjectModal={handleOpenProjectModal}
+        onScrollToSection={scrollToSection}
+        onOpenLabTab={handleOpenLabTab}
+      />
+
+      {/* Global Project Case Study Modal (Triggerable from Nova or anywhere) */}
+      {globalModalProject && (
+        <ProjectModal
+          project={globalModalProject}
+          onClose={() => setGlobalModalProject(null)}
+          onOpenDemo={() => {
+            setGlobalModalProject(null);
+            scrollToSection('mllab');
+          }}
         />
       )}
     </div>

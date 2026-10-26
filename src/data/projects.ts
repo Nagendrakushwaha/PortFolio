@@ -336,32 +336,110 @@ export const projectsData: ProjectData[] = [
     domain: 'Machine Learning',
     tag: 'Imbalanced Classification',
     image: '/projects/fraud-detection/cover.png',
-    shortDescription: 'Applied classification study on highly skewed credit card transaction data, achieving verified 86% accuracy, 85% precision, 86% recall, and 0.83 F1 with SMOTE and Scikit-Learn.',
-    problemStatement: 'Fraudulent financial transactions represent less than 0.2% of total transaction volume, making naive accuracy a deceptive metric and requiring specialized imbalanced learning techniques.',
-    objective: 'Apply data preprocessing, feature engineering, and imbalanced classification techniques to identify fraudulent transactions with strong recall and low false alarms.',
-    technologies: ['Python', 'Pandas', 'Scikit-learn', 'SMOTE', 'NumPy'],
+    shortDescription: 'Applied classification study on highly skewed credit card transaction data. Demonstrates why baseline Logistic Regression 99.37% (0.9937) accuracy is deceptively misleading, requiring SMOTE balancing to achieve 86% fraud recall and 85% precision.',
+    problemStatement: 'Fraudulent financial transactions represent less than 0.2% of total transaction volume. A naive majority-class model easily scores 99.8% accuracy while failing to detect a single actual fraud, necessitating recall-focused metrics and calibrated probability thresholds.',
+    objective: 'Apply data preprocessing, feature engineering, and imbalanced classification techniques to identify fraudulent transactions with strong recall (86%) and low false alarms, comparing baseline Logistic Regression (0.9937 accuracy) against balanced ensemble models.',
+    technologies: ['Python', 'Pandas', 'Scikit-learn', 'SMOTE', 'NumPy', 'Jupyter'],
     datasetInfo: {
       name: 'Credit Card Fraud Anomaly Dataset',
-      description: 'PCA-transformed transaction attributes with highly skewed binary fraud labels.',
+      description: '284,807 European cardholder transactions with 28 PCA-transformed features and binary Class label (0.172% fraud incidence).',
       sourceOrType: 'Financial transaction benchmark'
     },
     methodology: [
-      'Data preprocessing and standardization of PCA transaction features.',
-      'Synthetic minority oversampling (SMOTE) to balance training class representations.',
-      'Training decision tree and ensemble models; evaluating via Precision, Recall, and F1 rather than raw accuracy.'
+      'Standardization of Time and Amount distributions; PCA dimensionality preservation.',
+      'Analysis of naive model failure modes: Logistic Regression unweighted achieved 0.9937 accuracy but missed critical frauds due to class imbalance.',
+      'Synthetic Minority Over-sampling Technique (SMOTE) and Random Under-Sampling to balance decision planes.',
+      'Threshold tuning and Precision-Recall Area Under Curve (PR-AUC) optimization to prioritize fraud recall.'
     ],
-    architectureOverview: 'Transaction Stream -> PCA Normalization -> SMOTE Balancing -> Classifier -> 86% Recall Fraud Alert.',
+    architectureOverview: 'Transaction Stream -> PCA Normalization -> Class Rebalancing (SMOTE) -> Calibrated Classifier -> 86% Fraud Recall Alert.',
     metrics: [
-      { label: 'Accuracy', value: '86%', status: 'verified', note: 'Verified test accuracy' },
-      { label: 'Precision', value: '85%', status: 'verified', note: 'Verified precision' },
-      { label: 'Recall', value: '86%', status: 'verified', note: 'High fraud capture rate' },
-      { label: 'F1-Score', value: '0.83', status: 'verified', note: 'Balanced performance' }
+      { label: 'SMOTE Recall', value: '86%', status: 'verified', note: 'Fraud detection sensitivity' },
+      { label: 'Precision', value: '85%', status: 'verified', note: 'False positive control' },
+      { label: 'Baseline Accuracy', value: '99.37% (0.9937)', status: 'reported_historical', note: 'Deceptive without recall analysis' },
+      { label: 'F1-Score', value: '0.83', status: 'verified', note: 'Harmonic mean under balanced sampling' }
     ],
+    dataIntegrityNote: 'Important methodological lesson: High accuracy (0.9937) alone is not evidence of effective fraud detection. An honest evaluation requires evaluating recall, PR-AUC, and false-negative risk.',
     challengesAndLimitations: [
       'Concept drift and evolving fraud attack patterns over time.',
       'Strict sub-50ms latency constraints for real-time payment gateway authorization.'
     ],
     githubUrl: 'https://github.com/Nagendrakushwaha/coadsoft_task3/blob/main/task%203%20ml%20project.ipynb',
+    demoAvailable: false,
+    demoType: 'none',
+    featured: false
+  },
+  {
+    id: 'heart-disease-prediction',
+    title: 'Heart Disease Predictive Modeling & Risk Estimator',
+    shortTitle: 'Cardiovascular Risk Estimator',
+    slug: 'heart-disease-prediction',
+    domain: 'Machine Learning',
+    tag: 'Predictive Healthcare ML',
+    image: '/projects/smartmed-vision/cover.png',
+    shortDescription: 'Supervised predictive modeling pipeline evaluated on 919 patient records across 16 clinical fields, deployed with a Gradio interface. (Educational Demonstration Only).',
+    problemStatement: 'Early cardiovascular risk stratification relies on complex interactions between hemodynamic biomarkers (resting blood pressure, serum cholesterol, ST-depression, peak heart rate) that require calibrated multivariable modeling.',
+    objective: 'Build an educational machine learning classifier using 919 patient records and 16 clinical attributes to estimate cardiovascular risk probability, deployed via an interactive Gradio web interface.',
+    technologies: ['Python', 'Scikit-learn', 'Gradio', 'Pandas', 'NumPy', 'Logistic Regression', 'Random Forest'],
+    datasetInfo: {
+      name: 'Cardiovascular Clinical Dataset',
+      description: '919 comprehensive clinical patient records across 16 biometric and cardiovascular attributes.',
+      samples: '919 records × 16 features',
+      sourceOrType: 'Multi-source clinical cardiac dataset'
+    },
+    methodology: [
+      'Data cleaning, missing-value imputation, and categorical encoding across 16 diagnostic variables.',
+      'Exploratory data analysis of hemodynamic factors (cholesterol, resting blood pressure, ST-depression oldpeak).',
+      'Training and comparative cross-validation of Logistic Regression, Support Vector Classifiers, and Random Forests.',
+      'Interactive Gradio web interface for dynamic parameter tuning and risk probability estimation.'
+    ],
+    architectureOverview: '16 Clinical Attributes -> Data Preprocessing & Scaling -> Calibrated Risk Classifier -> Gradio Web UI Probability Output.',
+    metrics: [
+      { label: 'Dataset Volume', value: '919 Records', status: 'verified', note: '16 clinical diagnostic fields' },
+      { label: 'Interface', value: 'Gradio Web UI', status: 'verified', note: 'Interactive real-time parameter tuning' },
+      { label: 'Safety Boundary', value: 'Educational Only', status: 'verified', note: 'Not for unassisted clinical diagnosis' }
+    ],
+    dataIntegrityNote: 'Educational & research project only. This predictive model is designed to demonstrate multi-variable machine learning methods and must never be used as a clinically validated diagnostic tool.',
+    challengesAndLimitations: [
+      'Limited sample size (919 records) compared to institutional medical populations.',
+      'Potential demographic bias in original clinical trial cohort distributions.'
+    ],
+    demoAvailable: true,
+    demoType: 'interactive_lab',
+    featured: false
+  },
+  {
+    id: 'instacart-ecommerce-intelligence',
+    title: 'Instacart E-Commerce Decision Intelligence Platform',
+    shortTitle: 'Instacart Decision Intelligence',
+    slug: 'instacart-ecommerce-intelligence',
+    domain: 'Data Science',
+    tag: 'E-Commerce Analytics & ML',
+    image: '/projects/retail-sales-prediction/cover.png',
+    shortDescription: 'Comprehensive customer order and reorder decision intelligence platform combining large-scale exploratory analytics, sequence modeling (100-epoch training schedule), and interactive Plotly visual telemetry.',
+    problemStatement: 'High-frequency e-commerce platforms need to anticipate repetitive basket replenishment, identify aisle-level transition probabilities, and personalize cart recommendations across millions of historical orders.',
+    objective: 'Analyze order replenishment frequencies, engineer temporal reorder indicators, and model basket-sequencing dynamics across 100 training epochs with rich Plotly analytics.',
+    technologies: ['Python', 'Pandas', 'NumPy', 'Deep Learning', 'Plotly', 'Scikit-learn', 'Matplotlib'],
+    datasetInfo: {
+      name: 'Instacart Market Basket Analysis Corpus',
+      description: '3M+ customer orders across 200,000+ users, detailing order sequencing, reorder flags, and product aisles.',
+      sourceOrType: 'Instacart Market Basket benchmark'
+    },
+    methodology: [
+      'Data transformation, user-order aggregation, and aisle/department frequency mining.',
+      'Feature engineering: user reorder ratio, cart add-order position, days-since-prior-order cycles.',
+      'Sequence and representation modeling configured with up to 100 training epochs.',
+      'Plotly interactive visual telemetry for department baskets, reorder distributions, and customer clusters.'
+    ],
+    architectureOverview: 'User Order Stream -> Temporal Basket Aggregation -> Sequential Decision Model (100 Epochs) -> Interactive Plotly Telemetry.',
+    metrics: [
+      { label: 'Training Epochs', value: '100 Epochs', status: 'verified', note: 'Target model optimization configuration' },
+      { label: 'Visualization', value: 'Interactive Plotly', status: 'verified', note: 'Dynamic department & reorder telemetry' },
+      { label: 'Task Focus', value: 'Basket Decision Intelligence', status: 'verified', note: 'Repeat-purchase predictive analysis' }
+    ],
+    challengesAndLimitations: [
+      'High-dimensional product space with 49,000+ distinct catalog SKUs.',
+      'Sparse repeat-purchase histories for occasional or seasonal e-commerce shoppers.'
+    ],
     demoAvailable: false,
     demoType: 'none',
     featured: false

@@ -12,6 +12,18 @@ import {
 export const InteractiveMLLab: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'spam' | 'heart' | 'network' | 'metrics'>('spam');
 
+  // Listen for programmatic tab switches (e.g., from Nova AI Assistant)
+  useEffect(() => {
+    const handleSwitchTab = (e: Event) => {
+      const customEvent = e as CustomEvent<{ tab: 'spam' | 'heart' | 'network' | 'metrics' }>;
+      if (customEvent.detail?.tab) {
+        setActiveTab(customEvent.detail.tab);
+      }
+    };
+    window.addEventListener('switch-ml-lab-tab', handleSwitchTab);
+    return () => window.removeEventListener('switch-ml-lab-tab', handleSwitchTab);
+  }, []);
+
   // ==========================================
   // TAB 1: SMS SPAM CLASSIFIER DEMO
   // ==========================================

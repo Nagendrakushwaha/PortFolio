@@ -22,6 +22,7 @@ interface CosmicNavbarProps {
   isMuted: boolean;
   onToggleSound: () => void;
   onPlayClick?: () => void;
+  onOpenAssistant?: () => void;
 }
 
 export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
@@ -30,6 +31,7 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
   isMuted,
   onToggleSound,
   onPlayClick,
+  onOpenAssistant,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -172,8 +174,28 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
           </button>
         </nav>
 
-        {/* Right Controls: Sound Toggle & External Profiles */}
+        {/* Right Controls: Nova AI Voice, Sound Toggle & External Profiles */}
         <div className="pointer-events-auto flex items-center space-x-2">
+          {/* Nova Voice AI Quick Access Button */}
+          {onOpenAssistant && (
+            <button
+              onClick={() => {
+                if (onPlayClick) onPlayClick();
+                onOpenAssistant();
+              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-mono font-semibold flex items-center space-x-1.5 transition-all shadow-sm ${
+                isLight
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-indigo-500/20 hover:scale-105'
+                  : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 hover:border-cyan-400 hover:scale-105 shadow-glow-cyan'
+              }`}
+              title="Talk with Nova AI Voice Assistant"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
+              <span className="hidden sm:inline">Nova Voice AI</span>
+              <span className="sm:hidden">Nova AI</span>
+            </button>
+          )}
+
           {/* Sound Toggle */}
           <button
             onClick={() => {
@@ -251,6 +273,19 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
             : 'glass-panel-glow border-cyan-500/30 text-slate-200'
         }`}>
           <div className="flex flex-col space-y-2">
+            {onOpenAssistant && (
+              <button
+                onClick={() => handleNavClick(onOpenAssistant)}
+                className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-mono text-left font-bold border shadow-sm ${
+                  isLight
+                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-indigo-400'
+                    : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-glow-cyan'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
+                <span>Talk to Nova (AI Voice)</span>
+              </button>
+            )}
             <button
               onClick={() => handleNavClick(() => onChangeScene('multiverse'))}
               className={`flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-mono text-left ${

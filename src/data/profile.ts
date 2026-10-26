@@ -29,6 +29,8 @@ export const profileData: ProfileData = {
     location: "Bhopal, Madhya Pradesh, India",
     period: "2023 – 2027",
     cgpa: "7.85 / 10",
+    schoolName: "Government Higher Secondary School",
+    schoolLocation: "Kannoudhi, Shahdol, Madhya Pradesh, India",
   },
   careerInterests: [
     "Artificial Intelligence",
