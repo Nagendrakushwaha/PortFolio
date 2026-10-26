@@ -14,16 +14,34 @@ import { projectsData } from './data/projects';
 import { useAudio } from './hooks/useAudio';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useWebGLSupport } from './hooks/useWebGLSupport';
+import { KennedyVoiceProvider, useKennedyVoiceContext } from './context/KennedyVoiceContext';
 
-export const App: React.FC = () => {
-  const [activeScene, setActiveScene] = useState<SceneType>('awakening');
-  const [selectedWorld, setSelectedWorld] = useState<MultiverseWorldId | null>(null);
-  const [hoveredWorld, setHoveredWorld] = useState<MultiverseWorldId | null>(null);
-
-  // Mr. Kennedy AI Voice Assistant State
-  const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
-  const [globalModalProject, setGlobalModalProject] = useState<ProjectData | null>(null);
-
+const PortfolioContent: React.FC<{
+  onOpenProjectModal: (slug: string) => void;
+  scrollToSection: (id: string) => void;
+  onOpenLabTab: (tab: string) => void;
+  activeScene: SceneType;
+  setActiveScene: React.Dispatch<React.SetStateAction<SceneType>>;
+  selectedWorld: MultiverseWorldId | null;
+  setSelectedWorld: React.Dispatch<React.SetStateAction<MultiverseWorldId | null>>;
+  hoveredWorld: MultiverseWorldId | null;
+  setHoveredWorld: React.Dispatch<React.SetStateAction<MultiverseWorldId | null>>;
+  globalModalProject: ProjectData | null;
+  setGlobalModalProject: React.Dispatch<React.SetStateAction<ProjectData | null>>;
+}> = ({
+  onOpenProjectModal,
+  scrollToSection,
+  onOpenLabTab,
+  activeScene,
+  setActiveScene,
+  selectedWorld,
+  setSelectedWorld,
+  hoveredWorld,
+  setHoveredWorld,
+  globalModalProject,
+  setGlobalModalProject,
+}) => {
+  const { openChat } = useKennedyVoiceContext();
   const { isMuted, toggleSound, playClick, playPlanetHover, playWarp } = useAudio();
   const prefersReducedMotion = useReducedMotion();
   const hasWebGL = useWebGLSupport();
@@ -36,36 +54,18 @@ export const App: React.FC = () => {
     } else {
       setActiveScene('wormhole');
     }
-  }, [playWarp, prefersReducedMotion]);
+  }, [playWarp, prefersReducedMotion, setActiveScene]);
 
   // Wormhole complete callback -> Arrival in Multiverse
   const handleWormholeComplete = useCallback(() => {
     setActiveScene('multiverse');
-  }, []);
+  }, [setActiveScene]);
 
   // Skip intro at any time
   const handleSkipIntro = useCallback(() => {
     playClick();
     setActiveScene('multiverse');
-  }, [playClick]);
-
-  const scrollToSection = useCallback((id: string) => {
-    if (activeScene !== 'laboratory') {
-      setActiveScene('laboratory');
-      const attemptScroll = (attemptsLeft: number) => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
-        } else if (attemptsLeft > 0) {
-          setTimeout(() => attemptScroll(attemptsLeft - 1), 70);
-        }
-      };
-      setTimeout(() => attemptScroll(6), 50);
-    } else {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [activeScene]);
+  }, [playClick, setActiveScene]);
 
   // Primary CTA: Explore AI projects directly
   const handleExploreProjects = useCallback(() => {
@@ -78,52 +78,22 @@ export const App: React.FC = () => {
     playClick();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setActiveScene('laboratory');
-  }, [playClick]);
+  }, [playClick, setActiveScene]);
 
   // World selection in Multiverse
   const handleSelectWorld = useCallback((worldId: MultiverseWorldId) => {
     setSelectedWorld(worldId);
     playClick();
-    // Smoothly focus planet and transition to Laboratory
     setTimeout(() => {
       setActiveScene('laboratory');
     }, 700);
-  }, [playClick]);
+  }, [playClick, setActiveScene, setSelectedWorld]);
 
   const handleReturnToTop = useCallback(() => {
     playClick();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setActiveScene('awakening');
-  }, [playClick]);
-
-  // Assistant callbacks
-  const handleOpenAssistant = useCallback(() => {
-    playClick();
-    setIsAssistantOpen(true);
-  }, [playClick]);
-
-  const handleCloseAssistant = useCallback(() => {
-    setIsAssistantOpen(false);
-  }, []);
-
-  const handleToggleAssistant = useCallback(() => {
-    playClick();
-    setIsAssistantOpen((prev) => !prev);
-  }, [playClick]);
-
-  const handleOpenProjectModal = useCallback((slugOrId: string) => {
-    const found = projectsData.find((p) => p.id === slugOrId || p.slug === slugOrId);
-    if (found) {
-      setGlobalModalProject(found);
-    } else {
-      scrollToSection('projects');
-    }
-  }, [scrollToSection]);
-
-  const handleOpenLabTab = useCallback((tab: string) => {
-    scrollToSection('mllab');
-    window.dispatchEvent(new CustomEvent('switch-ml-lab-tab', { detail: { tab } }));
-  }, [scrollToSection]);
+  }, [playClick, setActiveScene]);
 
   return (
     <div className="relative min-h-screen w-full bg-black text-slate-100 overflow-x-hidden">
@@ -141,7 +111,7 @@ export const App: React.FC = () => {
         <WebGLFallback />
       )}
 
-      {/* Persistent HUD Navigation (Hidden on initial Awakening screen) */}
+      {/* Persistent HUD Navigation */}
       {activeScene !== 'awakening' && (
         <CosmicNavbar
           activeScene={activeScene}
@@ -152,7 +122,10 @@ export const App: React.FC = () => {
           isMuted={isMuted}
           onToggleSound={toggleSound}
           onPlayClick={playClick}
-          onOpenAssistant={handleOpenAssistant}
+          onOpenAssistant={() => {
+            playClick();
+            openChat();
+          }}
         />
       )}
 
@@ -200,22 +173,17 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Persistent Floating Mr. Kennedy Launcher across all scenes */}
-      <KennedyFloatingLauncher
-        isOpen={isAssistantOpen}
-        onToggle={handleToggleAssistant}
-      />
+      {/* Persistent Floating Mr. Kennedy Companion across all scenes */}
+      <KennedyFloatingLauncher />
 
       {/* Mr. Kennedy AI Voice Assistant Modal */}
       <KennedyChatModal
-        isOpen={isAssistantOpen}
-        onClose={handleCloseAssistant}
-        onOpenProjectModal={handleOpenProjectModal}
+        onOpenProjectModal={onOpenProjectModal}
         onScrollToSection={scrollToSection}
-        onOpenLabTab={handleOpenLabTab}
+        onOpenLabTab={onOpenLabTab}
       />
 
-      {/* Global Project Case Study Modal (Triggerable from Mr. Kennedy or anywhere) */}
+      {/* Global Project Case Study Modal */}
       {globalModalProject && (
         <ProjectModal
           project={globalModalProject}
@@ -227,6 +195,67 @@ export const App: React.FC = () => {
         />
       )}
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  const [activeScene, setActiveScene] = useState<SceneType>('awakening');
+  const [selectedWorld, setSelectedWorld] = useState<MultiverseWorldId | null>(null);
+  const [hoveredWorld, setHoveredWorld] = useState<MultiverseWorldId | null>(null);
+  const [globalModalProject, setGlobalModalProject] = useState<ProjectData | null>(null);
+
+  const scrollToSection = useCallback((id: string) => {
+    if (activeScene !== 'laboratory') {
+      setActiveScene('laboratory');
+      const attemptScroll = (attemptsLeft: number) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        } else if (attemptsLeft > 0) {
+          setTimeout(() => attemptScroll(attemptsLeft - 1), 70);
+        }
+      };
+      setTimeout(() => attemptScroll(6), 50);
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [activeScene]);
+
+  const handleOpenProjectModal = useCallback((slugOrId: string) => {
+    const found = projectsData.find((p) => p.id === slugOrId || p.slug === slugOrId);
+    if (found) {
+      setGlobalModalProject(found);
+    } else {
+      scrollToSection('projects');
+    }
+  }, [scrollToSection]);
+
+  const handleOpenLabTab = useCallback((tab: string) => {
+    scrollToSection('mllab');
+    window.dispatchEvent(new CustomEvent('switch-ml-lab-tab', { detail: { tab } }));
+  }, [scrollToSection]);
+
+  return (
+    <KennedyVoiceProvider
+      onOpenProjectModal={handleOpenProjectModal}
+      onScrollToSection={scrollToSection}
+      onOpenLabTab={handleOpenLabTab}
+    >
+      <PortfolioContent
+        onOpenProjectModal={handleOpenProjectModal}
+        scrollToSection={scrollToSection}
+        onOpenLabTab={handleOpenLabTab}
+        activeScene={activeScene}
+        setActiveScene={setActiveScene}
+        selectedWorld={selectedWorld}
+        setSelectedWorld={setSelectedWorld}
+        hoveredWorld={hoveredWorld}
+        setHoveredWorld={setHoveredWorld}
+        globalModalProject={globalModalProject}
+        setGlobalModalProject={setGlobalModalProject}
+      />
+    </KennedyVoiceProvider>
   );
 };
 

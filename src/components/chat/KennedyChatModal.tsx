@@ -7,6 +7,7 @@ import {
   VolumeX,
   Mic,
   MicOff,
+  PhoneOff,
   Send,
   Trash2,
   Copy,
@@ -15,26 +16,18 @@ import {
   Sparkles,
   ArrowRight,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Radio,
+  RotateCw,
 } from 'lucide-react';
-import { KennedyAssistantAvatar } from './KennedyAssistantAvatar';
+import { KennedyTalkingAvatar } from './KennedyTalkingAvatar';
 import { KennedyAudioWaveform } from './KennedyAudioWaveform';
-import { kennedyEngine, type ChatAction, type AssistantResponse } from '../../lib/kennedyKnowledgeEngine';
 import { useKennedyVoiceAssistant } from '../../hooks/useKennedyVoiceAssistant';
+import type { ChatAction } from '../../lib/kennedyKnowledgeEngine';
 
-export interface ChatMessage {
-  id: string;
-  sender: 'user' | 'assistant';
-  text: string;
-  timestamp: string;
-  actions?: ChatAction[];
-  sources?: string[];
-  isStreaming?: boolean;
-}
-
-interface KennedyChatModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+export interface KennedyChatModalProps {
+  isOpen?: boolean;
+  onClose?: () => void;
   onOpenProjectModal?: (slug: string) => void;
   onScrollToSection?: (sectionId: string) => void;
   onOpenLabTab?: (tab: string) => void;
@@ -49,69 +42,28 @@ const INITIAL_SUGGESTIONS = [
   'Show me his GitHub projects.',
   'Explain his speech emotion detection system.',
   'Why can accuracy be misleading in fraud detection?',
-  'Can I hire him for an AI project?'
+  'Can I hire him for an AI project?',
 ];
 
-const WELCOME_MESSAGE: ChatMessage = {
-  id: 'welcome-1',
-  sender: 'assistant',
-  text: "Hello! I'm **Mr. Kennedy**, Nagendra Kushwaha's AI portfolio assistant. I can tell you about his background, technical skills, projects, education, and experience. You can ask me anything about his professional profile. If you prefer, we can have a voice conversation instead of typing.",
-  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  actions: [
-    { type: 'scroll', label: 'Explore Verified Projects', payload: 'projects' },
-    { type: 'scroll', label: 'View Skills Matrix', payload: 'skills' },
-    { type: 'scroll', label: 'Contact Nagendra', payload: 'contact' },
-  ]
-};
-
 export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
-  isOpen,
-  onClose,
+  isOpen: propIsOpen,
+  onClose: propOnClose,
   onOpenProjectModal,
   onScrollToSection,
   onOpenLabTab,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
+  const voice = useKennedyVoiceAssistant();
+
+  const isOpen = propIsOpen !== undefined ? propIsOpen : voice.isChatOpen;
+  const handleClose = propOnClose || voice.closeChat;
+
   const [inputValue, setInputValue] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const generationAbortRef = useRef<boolean>(false);
-
-  // Kennedy Voice Hook Integration
-  const {
-    isVoiceOutputEnabled,
-    toggleVoiceOutput,
-    isSpeaking,
-    speak,
-    stopSpeaking,
-    availableVoices,
-    selectedVoice,
-    setSelectedVoice,
-    speechRate,
-    setSpeechRate,
-    speechPitch,
-    setSpeechPitch,
-    isListening,
-    startListening,
-    stopListening,
-    transcript,
-    interimTranscript,
-    sttSupported,
-    sttError,
-    audioLevel,
-  } = useKennedyVoiceAssistant({
-    onTranscriptFinal: (recognizedText) => {
-      if (recognizedText.trim()) {
-        handleSendMessage(recognizedText);
-      }
-    },
-    defaultMuted: false,
-  });
 
   // Auto-scroll to bottom of conversation
   const scrollToBottom = useCallback(() => {
@@ -121,136 +73,36 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
   useEffect(() => {
     if (isOpen && !isMinimized) {
       scrollToBottom();
-      // Focus input on open if on desktop
       if (window.innerWidth > 768) {
         setTimeout(() => inputRef.current?.focus(), 250);
       }
     }
-  }, [isOpen, isMinimized, messages, scrollToBottom]);
+  }, [isOpen, isMinimized, voice.messages, scrollToBottom]);
 
   // Handle Action Trigger from message
   const handleActionClick = (action: ChatAction) => {
-    stopSpeaking();
-    switch (action.type) {
-      case 'project_modal':
-        if (onOpenProjectModal) {
-          onOpenProjectModal(action.payload);
-        }
-        break;
-      case 'scroll':
-        if (onScrollToSection) {
-          onScrollToSection(action.payload);
-        }
-        break;
-      case 'lab_tab':
-        if (onOpenLabTab) {
-          onOpenLabTab(action.payload);
-        } else if (onScrollToSection) {
-          onScrollToSection('mllab');
-        }
-        break;
-      case 'external_link':
-        window.open(action.payload, '_blank', 'noopener,noreferrer');
-        break;
+    voice.stopSpeaking();
+    if (action.type === 'project_modal' && onOpenProjectModal) {
+      onOpenProjectModal(action.payload);
+    } else if (action.type === 'scroll' && onScrollToSection) {
+      onScrollToSection(action.payload);
+    } else if (action.type === 'lab_tab') {
+      if (onOpenLabTab) onOpenLabTab(action.payload);
+      else if (onScrollToSection) onScrollToSection('mllab');
+    } else if (action.type === 'external_link') {
+      window.open(action.payload, '_blank', 'noopener,noreferrer');
+    } else {
+      voice.handleActionClick(action);
     }
   };
 
-  // Send a message and generate assistant response
-  const handleSendMessage = useCallback(async (textToSend?: string) => {
-    const text = (textToSend || inputValue).trim();
-    if (!text || isGenerating) return;
-
+  // Submit user message
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const text = inputValue.trim();
+    if (!text || voice.isProcessing) return;
     setInputValue('');
-    stopSpeaking();
-    generationAbortRef.current = false;
-
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    // Add user message
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      sender: 'user',
-      text,
-      timestamp,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setIsGenerating(true);
-
-    try {
-      // Query Mr. Kennedy's Knowledge Engine with conversation history
-      const historyContext = messages.map(m => ({ sender: m.sender, text: m.text }));
-      const response: AssistantResponse = await kennedyEngine.query(text, historyContext);
-
-      if (generationAbortRef.current) {
-        setIsGenerating(false);
-        return;
-      }
-
-      // Simulated streaming effect for smooth response delivery
-      const assistantMsgId = `assistant-${Date.now()}`;
-      const fullText = response.text;
-
-      // Create streaming placeholder
-      const streamingMsg: ChatMessage = {
-        id: assistantMsgId,
-        sender: 'assistant',
-        text: '',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        actions: response.actions,
-        sources: response.sources,
-        isStreaming: true,
-      };
-
-      setMessages((prev) => [...prev, streamingMsg]);
-
-      // Stream words
-      const words = fullText.split(' ');
-      const step = Math.max(1, Math.floor(words.length / 30));
-
-      for (let i = 0; i < words.length; i += step) {
-        if (generationAbortRef.current) break;
-        const currentSlice = words.slice(0, i + step).join(' ');
-
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantMsgId ? { ...m, text: currentSlice } : m))
-        );
-
-        // Small delay for natural cadence
-        await new Promise((r) => setTimeout(r, 20));
-      }
-
-      // Finalize complete text
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantMsgId
-            ? { ...m, text: fullText, isStreaming: false }
-            : m
-        )
-      );
-
-      // Speak response aloud in natural voice if voice output is enabled
-      if (isVoiceOutputEnabled && !generationAbortRef.current) {
-        speak(fullText);
-      }
-    } catch (err) {
-      console.error('Error generating response:', err);
-      const errorMsg: ChatMessage = {
-        id: `assistant-err-${Date.now()}`,
-        sender: 'assistant',
-        text: "I encountered an issue retrieving that information. Please ask again or feel free to explore Nagendra's projects, skills, or contact info.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [inputValue, isGenerating, isVoiceOutputEnabled, messages, speak, stopSpeaking]);
-
-  // Stop Generation
-  const handleStopGeneration = () => {
-    generationAbortRef.current = true;
-    setIsGenerating(false);
+    voice.sendMessage(text);
   };
 
   // Copy Message Text
@@ -260,27 +112,17 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Clear Conversation
-  const handleClearChat = () => {
-    stopSpeaking();
-    setMessages([WELCOME_MESSAGE]);
-  };
-
   // Simple Markdown Formatter for Assistant Replies
   const formatMarkdown = (content: string) => {
     const lines = content.split('\n');
     return lines.map((line, idx) => {
-      // Bold text formatting
       let formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-cyan-200 font-semibold">$1</strong>');
-      // Inline code
       formatted = formatted.replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono text-[11px]">$1</code>');
-      // Links
       formatted = formatted.replace(
         /\[(.*?)\]\((.*?)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">$1</a>'
       );
 
-      // Bullet points
       if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
         return (
           <div key={idx} className="flex items-start space-x-2 my-1 pl-1">
@@ -290,7 +132,6 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
         );
       }
 
-      // Empty line spacer
       if (!line.trim()) {
         return <div key={idx} className="h-2" />;
       }
@@ -301,6 +142,7 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
     });
   };
 
+  // If chat panel is hidden, return null (Voice session continues in background!)
   if (!isOpen) return null;
 
   return (
@@ -308,54 +150,117 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
       role="dialog"
       aria-labelledby="kennedy-title"
       aria-modal="true"
-      className={`fixed z-50 transition-all duration-300 ${isMinimized
-          ? 'bottom-6 right-6 w-72 sm:w-80 h-16'
-          : 'inset-x-3 bottom-3 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[460px] md:w-[500px] h-[620px] max-h-[92vh]'
-        }`}
+      className={`fixed z-50 transition-all duration-300 ${
+        isMinimized
+          ? 'bottom-6 right-6 w-80 h-16'
+          : 'inset-x-3 bottom-3 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[480px] md:w-[520px] h-[640px] max-h-[92vh]'
+      }`}
     >
       {/* Main Glassmorphic Panel Container */}
-      <div className="relative w-full h-full rounded-2xl bg-slate-950/95 border border-cyan-500/30 shadow-2xl shadow-cyan-950/50 backdrop-blur-xl flex flex-col overflow-hidden text-slate-100">
-
+      <div className="relative w-full h-full rounded-2xl bg-slate-950/95 border border-cyan-500/35 shadow-2xl shadow-cyan-950/60 backdrop-blur-2xl flex flex-col overflow-hidden text-slate-100">
+        
         {/* Top Glow Accent Line */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500" />
 
         {/* ==================================================== */}
         {/* HEADER */}
         {/* ==================================================== */}
-        <header className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-slate-900/60 shrink-0">
+        <header className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-slate-900/70 shrink-0">
           <div className="flex items-center space-x-3">
-            <KennedyAssistantAvatar
+            <KennedyTalkingAvatar
               size="sm"
-              isSpeaking={isSpeaking}
-              isListening={isListening}
+              state={voice.assistantState}
+              isSpeaking={voice.isSpeaking}
+              isListening={voice.isListening}
+              isProcessing={voice.isProcessing}
+              isThinking={voice.isProcessing}
+              isMuted={voice.isMicMuted}
+              audioLevel={voice.audioLevel}
+              mouthOpen={voice.mouthOpen}
+              viseme={voice.currentViseme}
+              interactive={false}
+              showAura={true}
+              badge={true}
             />
+
             <div>
               <div className="flex items-center space-x-2">
                 <h3 id="kennedy-title" className="text-sm font-display font-bold text-white tracking-wide flex items-center space-x-1.5">
                   <span>Mr. Kennedy</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
-                    AI VOICE
+                  <span
+                    className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono border ${
+                      voice.isVoiceSessionActive
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                        : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    }`}
+                  >
+                    {voice.isVoiceSessionActive ? 'VOICE LIVE' : 'AI VOICE'}
                   </span>
                 </h3>
               </div>
               <p className="text-[11px] font-mono text-slate-400">
-                Nagendra's Portfolio Assistant
+                Nagendra's Persistent AI Companion
               </p>
             </div>
           </div>
 
           {/* Header Controls */}
           <div className="flex items-center space-x-1">
-            {/* Toggle Voice Output Mute */}
+            {/* Toggle Persistent Voice Session Mode */}
             <button
-              onClick={toggleVoiceOutput}
-              className={`p-1.5 rounded-lg border transition-all ${isVoiceOutputEnabled
+              onClick={() => {
+                if (voice.isVoiceSessionActive) {
+                  voice.endVoiceSession();
+                } else {
+                  voice.startVoiceSession();
+                }
+              }}
+              className={`px-2.5 py-1 rounded-lg border text-xs font-mono font-semibold flex items-center space-x-1.5 transition-all ${
+                voice.isVoiceSessionActive
+                  ? 'bg-rose-950/80 border-rose-600/70 text-rose-300 hover:bg-rose-900 shadow-sm'
+                  : 'bg-cyan-950/80 border-cyan-500/50 text-cyan-300 hover:bg-cyan-900/90'
+              }`}
+              title={voice.isVoiceSessionActive ? 'End active voice session' : 'Start interactive voice conversation'}
+            >
+              {voice.isVoiceSessionActive ? (
+                <>
+                  <PhoneOff className="w-3 h-3 text-rose-400" />
+                  <span className="hidden sm:inline">End Voice</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="w-3 h-3 text-cyan-400" />
+                  <span className="hidden sm:inline">Voice Mode</span>
+                </>
+              )}
+            </button>
+
+            {/* Mute Microphone */}
+            {voice.isVoiceSessionActive && (
+              <button
+                onClick={voice.toggleMicMute}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  voice.isMicMuted
+                    ? 'bg-amber-950/80 border-amber-500/60 text-amber-300 hover:bg-amber-900'
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                }`}
+                title={voice.isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
+              >
+                {voice.isMicMuted ? <MicOff className="w-3.5 h-3.5 text-amber-400" /> : <Mic className="w-3.5 h-3.5 text-rose-400" />}
+              </button>
+            )}
+
+            {/* Toggle Spoken Speech Audio Output Mute */}
+            <button
+              onClick={voice.toggleVoiceOutput}
+              className={`p-1.5 rounded-lg border transition-all ${
+                voice.isVoiceOutputEnabled
                   ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20'
                   : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-                }`}
-              title={isVoiceOutputEnabled ? 'Mute Voice Output' : 'Unmute Voice Output'}
+              }`}
+              title={voice.isVoiceOutputEnabled ? 'Mute Assistant Audio' : 'Unmute Assistant Audio'}
             >
-              {isVoiceOutputEnabled ? (
+              {voice.isVoiceOutputEnabled ? (
                 <Volume2 className="w-3.5 h-3.5" />
               ) : (
                 <VolumeX className="w-3.5 h-3.5" />
@@ -365,10 +270,11 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
             {/* Voice Settings */}
             <button
               onClick={() => setShowSettings((prev) => !prev)}
-              className={`p-1.5 rounded-lg border transition-all ${showSettings
+              className={`p-1.5 rounded-lg border transition-all ${
+                showSettings
                   ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
                   : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
-                }`}
+              }`}
               title="Voice & Speech Settings"
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -376,31 +282,27 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
 
             {/* Clear Chat */}
             <button
-              onClick={handleClearChat}
+              onClick={voice.clearChat}
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
-              title="Clear Conversation"
+              title="Clear Conversation History"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
 
-            {/* Minimize / Maximize */}
+            {/* Minimize / Maximize Window */}
             <button
               onClick={() => setIsMinimized((prev) => !prev)}
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
-              title={isMinimized ? 'Expand Chat' : 'Minimize Chat'}
+              title={isMinimized ? 'Expand Chat Panel' : 'Minimize Chat Panel'}
             >
               {isMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
             </button>
 
-            {/* Close */}
+            {/* Close / Hide Window */}
             <button
-              onClick={() => {
-                stopSpeaking();
-                stopListening();
-                onClose();
-              }}
+              onClick={handleClose}
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/80 hover:text-rose-300 border border-slate-700 hover:border-rose-700 text-slate-400 transition-all"
-              title="Close Assistant"
+              title="Hide Chat Panel (Voice continues in background if active)"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -410,28 +312,46 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
         {/* If minimized, hide body */}
         {!isMinimized && (
           <>
-            {/* ==================================================== */}
-            {/* VOICE SETTINGS MODAL / FLYOUT */}
-            {/* ==================================================== */}
+            {/* Active Voice Session Status Notice Banner */}
+            {voice.isVoiceSessionActive && (
+              <div className="px-4 py-1.5 bg-gradient-to-r from-cyan-950/80 via-slate-900 to-indigo-950/80 border-b border-cyan-500/30 text-[11px] font-mono text-cyan-200 flex items-center justify-between">
+                <span className="flex items-center space-x-1.5">
+                  <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                  <span>
+                    {voice.isListening
+                      ? 'Listening to your speech... Speak freely or type'
+                      : voice.isProcessing
+                      ? 'Processing question...'
+                      : voice.isSpeaking
+                      ? 'Speaking response aloud...'
+                      : 'Voice Session Active'}
+                  </span>
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {voice.isMicMuted ? 'Muted' : 'Mic Live'}
+                </span>
+              </div>
+            )}
+
+            {/* Voice Settings Flyout */}
             {showSettings && (
               <div className="p-3 bg-slate-900 border-b border-white/10 text-xs font-mono space-y-3 z-10 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between text-slate-300 font-bold">
-                  <span>Mr. Kennedy Voice Settings</span>
-                  <span className="text-[10px] text-cyan-400">Natural Speech</span>
+                  <span>Mr. Kennedy Voice Configuration</span>
+                  <span className="text-[10px] text-cyan-400">Natural Synthesis</span>
                 </div>
 
-                {/* Voice Selection */}
                 <div className="space-y-1">
                   <label className="text-[10px] text-slate-400">Selected Voice:</label>
                   <select
-                    value={selectedVoice?.name || ''}
+                    value={voice.selectedVoice?.name || ''}
                     onChange={(e) => {
-                      const found = availableVoices.find((v) => v.voice.name === e.target.value);
-                      if (found) setSelectedVoice(found.voice);
+                      const found = voice.availableVoices.find((v) => v.voice.name === e.target.value);
+                      if (found) voice.setSelectedVoice(found.voice);
                     }}
                     className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
                   >
-                    {availableVoices.map((v, i) => (
+                    {voice.availableVoices.map((v, i) => (
                       <option key={i} value={v.voice.name}>
                         {v.displayName}
                       </option>
@@ -439,20 +359,19 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                   </select>
                 </div>
 
-                {/* Rate & Pitch Sliders */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-slate-400">
                       <span>Speed</span>
-                      <span>{speechRate.toFixed(1)}x</span>
+                      <span>{voice.speechRate.toFixed(1)}x</span>
                     </div>
                     <input
                       type="range"
                       min="0.8"
                       max="1.4"
                       step="0.1"
-                      value={speechRate}
-                      onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                      value={voice.speechRate}
+                      onChange={(e) => voice.setSpeechRate(parseFloat(e.target.value))}
                       className="w-full accent-cyan-500 h-1 bg-slate-800 rounded"
                     />
                   </div>
@@ -460,79 +379,91 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-slate-400">
                       <span>Pitch</span>
-                      <span>{speechPitch.toFixed(2)}</span>
+                      <span>{voice.speechPitch.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
                       min="0.85"
                       max="1.25"
                       step="0.05"
-                      value={speechPitch}
-                      onChange={(e) => setSpeechPitch(parseFloat(e.target.value))}
+                      value={voice.speechPitch}
+                      onChange={(e) => voice.setSpeechPitch(parseFloat(e.target.value))}
                       className="w-full accent-cyan-500 h-1 bg-slate-800 rounded"
                     />
                   </div>
                 </div>
-
-                {/* Test Voice Button */}
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={() => speak("Hello! I am Mr. Kennedy, Nagendra's AI assistant, ready to discuss his machine learning projects and engineering experience.")}
-                    className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-semibold flex items-center space-x-1"
-                  >
-                    <Volume2 className="w-3 h-3" />
-                    <span>Test Voice</span>
-                  </button>
-                </div>
               </div>
             )}
 
-            {/* ==================================================== */}
-            {/* ACTIVE AUDIO WAVEFORM BAR */}
-            {/* ==================================================== */}
+            {/* Active Audio Waveform Bar */}
             <div className="px-4 pt-2">
               <KennedyAudioWaveform
-                isActive={isSpeaking || isListening}
-                isSpeaking={isSpeaking}
-                isListening={isListening}
-                audioLevel={audioLevel}
-                onStopSpeaking={stopSpeaking}
-                onStopListening={stopListening}
+                isActive={voice.isSpeaking || voice.isListening || voice.isProcessing || voice.isMicMuted}
+                state={voice.assistantState}
+                isSpeaking={voice.isSpeaking}
+                isListening={voice.isListening}
+                isProcessing={voice.isProcessing}
+                isThinking={voice.isProcessing}
+                isMuted={voice.isMicMuted}
+                audioLevel={voice.audioLevel}
+                onStopSpeaking={voice.stopSpeaking}
+                onToggleMute={voice.toggleMicMute}
+                onRetry={voice.retryListening}
               />
             </div>
 
-            {/* Speech-To-Text Error Banner */}
-            {sttError && (
-              <div className="mx-4 my-2 p-2 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-200 text-xs flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span className="text-[11px] leading-tight">{sttError}</span>
+            {/* Speech-To-Text / Audio Input Error Banner with Retry Control */}
+            {voice.sttError && (
+              <div className="mx-4 my-2 p-2.5 rounded-xl bg-rose-950/70 border border-rose-800 text-rose-200 text-xs flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-200">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span className="text-[11px] leading-snug">{voice.sttError}</span>
+                </div>
+                <button
+                  onClick={voice.retryListening}
+                  className="px-2.5 py-1 rounded-lg bg-rose-900/90 hover:bg-rose-800 text-rose-100 text-[11px] font-semibold flex items-center space-x-1 shrink-0 transition-all border border-rose-700"
+                >
+                  <RotateCw className="w-3 h-3" />
+                  <span>Retry</span>
+                </button>
               </div>
             )}
 
-            {/* ==================================================== */}
-            {/* MESSAGES LIST */}
-            {/* ==================================================== */}
+            {/* Messages Stream */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 font-sans text-xs scrollbar-thin scrollbar-thumb-slate-800">
-              {messages.map((msg) => {
+              {voice.messages.map((msg) => {
                 const isAssistant = msg.sender === 'assistant';
 
                 return (
                   <div
                     key={msg.id}
-                    className={`flex items-start space-x-2.5 ${isAssistant ? 'justify-start' : 'justify-end'
-                      }`}
+                    className={`flex items-start space-x-2.5 ${
+                      isAssistant ? 'justify-start' : 'justify-end'
+                    }`}
                   >
                     {isAssistant && (
-                      <KennedyAssistantAvatar size="sm" isSpeaking={isSpeaking} />
+                      <KennedyTalkingAvatar
+                        size="xs"
+                        state={voice.assistantState}
+                        isSpeaking={voice.isSpeaking}
+                        isListening={voice.isListening}
+                        isProcessing={voice.isProcessing}
+                        audioLevel={voice.audioLevel}
+                        mouthOpen={voice.mouthOpen}
+                        viseme={voice.currentViseme}
+                        interactive={false}
+                        showAura={false}
+                        badge={false}
+                      />
                     )}
 
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3.5 space-y-2 shadow-sm ${isAssistant
+                      className={`max-w-[85%] rounded-2xl p-3.5 space-y-2 shadow-sm ${
+                        isAssistant
                           ? 'bg-slate-900/90 border border-white/10 text-slate-200'
                           : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium self-end rounded-tr-sm'
-                        }`}
+                      }`}
                     >
-                      {/* Message Content */}
                       <div className="space-y-1">
                         {isAssistant ? formatMarkdown(msg.text) : <p>{msg.text}</p>}
                       </div>
@@ -562,22 +493,20 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                         </div>
                       )}
 
-                      {/* Message Footer: Timestamp, Voice Replay, Copy */}
+                      {/* Message Footer */}
                       <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1">
                         <span>{msg.timestamp}</span>
 
                         {isAssistant && (
                           <div className="flex items-center space-x-1.5 opacity-80 hover:opacity-100 transition-opacity">
-                            {/* Replay Voice */}
                             <button
-                              onClick={() => speak(msg.text)}
+                              onClick={() => voice.sendMessage(msg.text)}
                               className="p-1 hover:text-cyan-300 transition-colors"
-                              title="Speak this response"
+                              title="Re-speak response aloud"
                             >
                               <Volume2 className="w-3 h-3" />
                             </button>
 
-                            {/* Copy Text */}
                             <button
                               onClick={() => handleCopy(msg.id, msg.text)}
                               className="p-1 hover:text-cyan-300 transition-colors"
@@ -597,13 +526,13 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                 );
               })}
 
-              {/* Generating indicator */}
-              {isGenerating && (
+              {/* Processing indicator */}
+              {voice.isProcessing && (
                 <div className="flex items-center space-x-2 text-cyan-400 font-mono text-xs pl-2">
                   <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                  <span>Mr. Kennedy is formulating a response...</span>
+                  <span>Mr. Kennedy is processing your question...</span>
                   <button
-                    onClick={handleStopGeneration}
+                    onClick={voice.stopGeneration}
                     className="ml-2 px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px]"
                   >
                     Stop
@@ -611,8 +540,8 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                 </div>
               )}
 
-              {/* Suggestions / Starter Pills */}
-              {messages.length === 1 && (
+              {/* Starter questions */}
+              {voice.messages.length === 1 && (
                 <div className="pt-2 space-y-2">
                   <div className="text-[11px] font-mono text-cyan-400/80 uppercase font-semibold">
                     Suggested Questions:
@@ -621,7 +550,7 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                     {INITIAL_SUGGESTIONS.map((suggestion, sIdx) => (
                       <button
                         key={sIdx}
-                        onClick={() => handleSendMessage(suggestion)}
+                        onClick={() => voice.sendMessage(suggestion)}
                         className="text-left px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 text-[11px] text-slate-300 hover:text-white transition-all shadow-sm"
                       >
                         {suggestion}
@@ -634,73 +563,82 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
               <div ref={messagesEndRef} />
             </div>
 
-            {/* ==================================================== */}
-            {/* LIVE TRANSCRIPTION PREVIEW WHEN LISTENING */}
-            {/* ==================================================== */}
-            {isListening && (
-              <div className="px-4 py-2 bg-slate-900/80 border-t border-rose-500/30 text-xs font-mono text-rose-300 flex items-center space-x-2 animate-pulse">
-                <Mic className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="italic truncate">
-                  {interimTranscript || transcript || 'Listening... Speak your question now'}
+            {/* Live Transcription Preview when Listening */}
+            {voice.isListening && (
+              <div className="px-4 py-2 bg-slate-900/90 border-t border-rose-500/40 text-xs font-mono text-rose-300 flex items-center justify-between animate-pulse">
+                <div className="flex items-center space-x-2 truncate">
+                  <Mic className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <span className="italic truncate">
+                    {voice.interimTranscript || voice.transcript || 'Listening... Speak your question now'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 hidden sm:inline shrink-0 pl-2">
+                  Speak clearly or type below
                 </span>
               </div>
             )}
 
-            {/* ==================================================== */}
-            {/* INPUT & VOICE CONTROLS */}
-            {/* ==================================================== */}
-            <footer className="p-3 border-t border-white/10 bg-slate-900/70 shrink-0">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="flex items-center space-x-2"
-              >
-                {/* Speech-to-Text Microphone Button */}
-                {sttSupported && (
+            {/* Input & Voice Controls Footer */}
+            <footer className="p-3 border-t border-white/10 bg-slate-900/80 shrink-0">
+              <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+                {/* Microphone Toggle Button */}
+                {voice.sttSupported && (
                   <button
                     type="button"
                     onClick={() => {
-                      if (isListening) {
-                        stopListening();
+                      if (voice.isVoiceSessionActive) {
+                        voice.toggleMicMute();
                       } else {
-                        startListening();
+                        voice.startVoiceSession();
                       }
                     }}
-                    className={`p-2.5 rounded-full border transition-all ${isListening
+                    className={`p-2.5 rounded-full border transition-all ${
+                      voice.isListening
                         ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-500/40 animate-pulse'
+                        : voice.isProcessing
+                        ? 'bg-indigo-600 border-indigo-400 text-white animate-spin'
+                        : voice.isVoiceSessionActive
+                        ? 'bg-indigo-600 border-indigo-400 text-white'
                         : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-cyan-300'
-                      }`}
-                    title={isListening ? 'Stop Listening' : 'Speak to Mr. Kennedy (AI Voice Assistant)'}
+                    }`}
+                    title={
+                      voice.isListening
+                        ? 'Listening to you... (Click to mute)'
+                        : voice.isProcessing
+                        ? 'Processing question...'
+                        : voice.isVoiceSessionActive
+                        ? 'Voice session active (Click to toggle)'
+                        : 'Start voice session with Mr. Kennedy'
+                    }
                   >
-                    {isListening ? (
-                      <MicOff className="w-4 h-4" />
+                    {voice.isMicMuted ? (
+                      <MicOff className="w-4 h-4 text-amber-300" />
                     ) : (
                       <Mic className="w-4 h-4" />
                     )}
                   </button>
                 )}
 
-                {/* Text Input */}
+                {/* Text Input (Always available as reliable text-chat fallback) */}
                 <input
                   ref={inputRef}
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={
-                    isListening
-                      ? 'Listening to your voice...'
+                    voice.isListening
+                      ? 'Listening to your voice... (or type here)'
+                      : voice.isProcessing
+                      ? 'Processing question...'
                       : 'Ask Mr. Kennedy about projects, skills, education...'
                   }
-                  disabled={isListening}
                   className="flex-1 px-3.5 py-2.5 rounded-full bg-slate-950 border border-slate-700/80 text-xs font-mono text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                 />
 
                 {/* Send Button */}
                 <button
                   type="submit"
-                  disabled={!inputValue.trim() || isGenerating}
+                  disabled={!inputValue.trim() || voice.isProcessing}
                   className="p-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white disabled:opacity-40 disabled:hover:from-cyan-500 disabled:hover:to-indigo-600 transition-all shadow-md shadow-indigo-500/20"
                   title="Send message"
                 >
