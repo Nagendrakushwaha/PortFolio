@@ -13,6 +13,8 @@ import {
   type AssistantResponse,
 } from '../lib/kennedyKnowledgeEngine';
 import { soundSynth } from '../lib/soundSynthesizer';
+import { audioLipSync } from '../lib/audioLipSync';
+import { voiceService } from '../lib/voiceService';
 import type {
   AssistantState,
   VisemeType,
@@ -29,10 +31,13 @@ export interface ChatMessage {
 }
 
 export interface VoiceOption {
-  voice: SpeechSynthesisVoice;
+  id: string;
   displayName: string;
   gender: 'male' | 'female' | 'neutral';
   lang: string;
+  isNeural: boolean;
+  provider: 'openai' | 'elevenlabs' | 'browser';
+  voice?: SpeechSynthesisVoice;
 }
 
 export interface KennedyVoiceContextType {
@@ -79,12 +84,17 @@ export interface KennedyVoiceContextType {
   isVoiceOutputEnabled: boolean;
   toggleVoiceOutput: () => void;
   availableVoices: VoiceOption[];
+  selectedVoiceId: string;
+  setSelectedVoiceId: (voiceId: string) => void;
   selectedVoice: SpeechSynthesisVoice | null;
   setSelectedVoice: (voice: SpeechSynthesisVoice) => void;
   speechRate: number;
   setSpeechRate: (rate: number) => void;
   speechPitch: number;
   setSpeechPitch: (pitch: number) => void;
+  activeProvider: 'openai' | 'elevenlabs' | 'browser';
+  setActiveProvider: (provider: 'openai' | 'elevenlabs' | 'browser') => void;
+  isNeuralVoiceActive: boolean;
 
   // External Action Handlers
   onOpenProjectModal?: (slug: string) => void;
@@ -96,7 +106,7 @@ export interface KennedyVoiceContextType {
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome-1',
   sender: 'assistant',
-  text: "Hello! I'm **Mr. Kennedy**, Nagendra Kushwaha's AI portfolio voice companion. I can discuss his machine learning research, verified projects, tech stack, and background while you browse anywhere on the portfolio. You can speak with me using your microphone or type your questions.",
+  text: "Hello! I'm **Mr. Kennedy**, Nagendra Kushwaha's AI portfolio voice companion. I have complete, verified knowledge of his machine learning research, data analytics projects, and background. You can speak with me using your microphone or type your questions, and I will respond aloud with a natural AI voice.",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   actions: [
     { type: 'scroll', label: 'Explore Verified Projects', payload: 'projects' },
@@ -107,7 +117,6 @@ const WELCOME_MESSAGE: ChatMessage = {
 
 const KennedyVoiceContext = createContext<KennedyVoiceContextType | null>(null);
 
-// SpeechRecognition global interface
 interface IWindowSpeechRecognition extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
@@ -128,7 +137,6 @@ interface KennedyVoiceProviderProps {
   onOpenLabTab?: (tab: string) => void;
 }
 
-// Development Diagnostic Logger
 const logDiag = (category: string, message: string, data?: any) => {
   if (typeof window !== 'undefined') {
     const time = new Date().toISOString().substring(11, 23);
@@ -166,10 +174,13 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   const [transcript, setTranscript] = useState<string>('');
   const [interimTranscript, setInterimTranscript] = useState<string>('');
 
-  // 4. Voice Output Audio Settings
+  // 4. Voice Output Configuration
   const [isVoiceOutputEnabled, setIsVoiceOutputEnabled] = useState<boolean>(true);
   const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('echo');
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [activeProvider, setActiveProvider] = useState<'openai' | 'elevenlabs' | 'browser'>('openai');
+  const [isNeuralVoiceActive, setIsNeuralVoiceActive] = useState<boolean>(false);
   const [speechRate, setSpeechRate] = useState<number>(1.0);
   const [speechPitch, setSpeechPitch] = useState<number>(1.0);
 
@@ -190,18 +201,22 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   const latestTranscriptRef = useRef<string>('');
   const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackAnimFrameRef = useRef<number | null>(null);
 
   // Active state mirrors for non-stale callbacks
   const isSpeakingRef = useRef<boolean>(false);
   const isListeningRef = useRef<boolean>(false);
   const isVoiceSessionActiveRef = useRef<boolean>(false);
   const isMicMutedRef = useRef<boolean>(false);
-  const audioLoopFrameRef = useRef<number | null>(null);
+  const activeProviderRef = useRef<'openai' | 'elevenlabs' | 'browser'>('openai');
+  const selectedVoiceIdRef = useRef<string>('echo');
 
   isSpeakingRef.current = isSpeaking;
   isListeningRef.current = isListening;
   isVoiceSessionActiveRef.current = isVoiceSessionActive;
   isMicMutedRef.current = isMicMuted;
+  activeProviderRef.current = activeProvider;
+  selectedVoiceIdRef.current = selectedVoiceId;
 
   // Function refs for safe recursion
   const startListeningLoopRef = useRef<() => void>(() => {});
@@ -220,53 +235,91 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     }
   }, []);
 
-  // Initialize Available Voices
-  const populateVoices = useCallback(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices || voices.length === 0) return;
+  // Initialize Available Voices (Neural AI + Browser Fallback)
+  const populateVoices = useCallback(async () => {
+    const list: VoiceOption[] = [];
 
-    const maleKeywords = [
-      'david', 'mark', 'george', 'james', 'daniel', 'alex', 'fred', 'oliver',
-      'arthur', 'rishi', 'guy', 'male', 'richard', 'thomas', 'brian', 'steven', 'tom'
-    ];
-    const femaleKeywords = [
-      'female', 'zira', 'jenny', 'aria', 'samantha', 'victoria', 'karen', 'moira',
-      'fiona', 'tessa', 'siri', 'veena', 'catherine', 'hazel', 'susan', 'allison',
-      'ava', 'clara', 'eva', 'shelby', 'heera', 'priya', 'kalpana', 'swara'
-    ];
+    // 1. Fetch AI Voice Provider Status from Backend
+    try {
+      const status = await voiceService.getVoiceStatus();
+      logDiag('Init', 'Backend voice status retrieved:', status);
 
-    const voiceList: VoiceOption[] = voices.map((v) => {
-      const nameLower = v.name.toLowerCase();
-      let gender: 'male' | 'female' | 'neutral' = 'neutral';
-      if (maleKeywords.some((kw) => nameLower.includes(kw)) || (nameLower.includes('male') && !nameLower.includes('female'))) {
-        gender = 'male';
-      } else if (femaleKeywords.some((kw) => nameLower.includes(kw))) {
-        gender = 'female';
-      } else if (nameLower.includes('natural') || nameLower.includes('google')) {
-        gender = 'male';
+      if (status.openai?.supportedVoices) {
+        status.openai.supportedVoices.forEach((v) => {
+          list.push({
+            id: v.id,
+            displayName: `[Neural AI] ${v.name} (${v.gender === 'male' ? 'Male' : v.gender}) — ${v.description}`,
+            gender: v.gender,
+            lang: 'en-US',
+            isNeural: true,
+            provider: 'openai',
+          });
+        });
       }
 
-      const genderLabel = gender === 'male' ? ' — Male' : gender === 'female' ? ' — Female' : '';
-      return {
-        voice: v,
-        displayName: `${v.name} (${v.lang})${genderLabel}`,
-        gender,
-        lang: v.lang,
-      };
-    });
+      if (status.elevenlabs?.supportedVoices) {
+        status.elevenlabs.supportedVoices.forEach((v) => {
+          list.push({
+            id: v.id,
+            displayName: `[ElevenLabs] ${v.name} (${v.gender}) — ${v.description}`,
+            gender: v.gender,
+            lang: 'en-US',
+            isNeural: true,
+            provider: 'elevenlabs',
+          });
+        });
+      }
 
-    setAvailableVoices(voiceList);
-
-    const englishMale = voiceList.find(
-      (v) => v.gender === 'male' && (v.lang.startsWith('en') || v.lang.startsWith('en-US') || v.lang.startsWith('en-GB') || v.lang.startsWith('en-IN'))
-    );
-    const anyMale = voiceList.find((v) => v.gender === 'male');
-    const anyEnglish = voiceList.find((v) => v.lang.startsWith('en'));
-    const bestVoice = englishMale?.voice || anyMale?.voice || anyEnglish?.voice || voices[0];
-    if (bestVoice) {
-      setSelectedVoice(bestVoice);
+      if (status.activeProvider === 'openai' || status.activeProvider === 'elevenlabs') {
+        setActiveProvider(status.activeProvider);
+        setIsNeuralVoiceActive(true);
+        if (status.activeVoice) {
+          setSelectedVoiceId(status.activeVoice);
+        }
+      }
+    } catch (err) {
+      logDiag('Init', 'Failed to fetch backend voice status, proceeding with browser fallback:', err);
     }
+
+    // 2. Add Browser Speech Synthesis Voices as Fallback Options
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const browserVoices = window.speechSynthesis.getVoices();
+      const maleKeywords = [
+        'david', 'mark', 'george', 'james', 'daniel', 'alex', 'fred', 'oliver',
+        'arthur', 'rishi', 'guy', 'male', 'richard', 'thomas', 'brian', 'steven', 'tom'
+      ];
+
+      browserVoices.forEach((v) => {
+        const nameLower = v.name.toLowerCase();
+        let gender: 'male' | 'female' | 'neutral' = 'neutral';
+        if (maleKeywords.some((kw) => nameLower.includes(kw)) || (nameLower.includes('male') && !nameLower.includes('female'))) {
+          gender = 'male';
+        } else if (nameLower.includes('female')) {
+          gender = 'female';
+        }
+
+        list.push({
+          id: `browser:${v.name}`,
+          displayName: `[Standard] ${v.name} (${v.lang})${gender === 'male' ? ' — Male' : ''}`,
+          gender,
+          lang: v.lang,
+          isNeural: false,
+          provider: 'browser',
+          voice: v,
+        });
+      });
+
+      const englishMale = browserVoices.find((v) =>
+        maleKeywords.some((kw) => v.name.toLowerCase().includes(kw)) && v.lang.startsWith('en')
+      );
+      if (englishMale) {
+        setSelectedVoice(englishMale);
+      } else if (browserVoices[0]) {
+        setSelectedVoice(browserVoices[0]);
+      }
+    }
+
+    setAvailableVoices(list);
   }, []);
 
   // Check STT & populate voices on mount
@@ -275,24 +328,18 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
 
     populateVoices();
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = populateVoices;
+      window.speechSynthesis.onvoiceschanged = () => populateVoices();
     }
 
     const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const supported = !!SpeechRecognitionClass;
     setSttSupported(supported);
-    logDiag('STT', `SpeechRecognition API supported in browser: ${supported}`);
+    logDiag('STT', `SpeechRecognition API supported: ${supported}`);
 
-    // Lifecycle: Cleanup on tab unload
-    const handleBeforeUnload = () => {
-      logDiag('Lifecycle', 'Page beforeunload event triggered. Cleaning audio resources.');
-      cleanupAudioResourcesRef.current();
-    };
-
-    // Safe background behavior: Pause mic if tab hidden to conserve resources
+    // Tab visibility handling: pause STT if tab hidden, keep audio playing if minimized
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        logDiag('Lifecycle', 'Browser tab hidden. Pausing active speech recognition.');
+        logDiag('Lifecycle', 'Browser tab hidden. Pausing speech recognition.');
         if (recognitionRef.current) {
           try { recognitionRef.current.abort(); } catch {}
           setIsListening(false);
@@ -303,6 +350,10 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
           startListeningLoopRef.current();
         }
       }
+    };
+
+    const handleBeforeUnload = () => {
+      cleanupAudioResourcesRef.current();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -320,6 +371,8 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     logDiag('Mic', 'Cleaning up all audio, speech, and microphone resources.');
     clearTimers();
 
+    audioLipSync.stop();
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -331,6 +384,10 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       cancelAnimationFrame(micPollingFrameRef.current);
       micPollingFrameRef.current = null;
     }
+    if (fallbackAnimFrameRef.current) {
+      cancelAnimationFrame(fallbackAnimFrameRef.current);
+      fallbackAnimFrameRef.current = null;
+    }
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
@@ -338,10 +395,6 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       try { audioContextRef.current.close(); } catch {}
       audioContextRef.current = null;
-    }
-    if (audioLoopFrameRef.current) {
-      cancelAnimationFrame(audioLoopFrameRef.current);
-      audioLoopFrameRef.current = null;
     }
 
     setIsSpeaking(false);
@@ -358,9 +411,16 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   // Stop Speaking Immediately (Interruption / Barge-in)
   const stopSpeaking = useCallback(() => {
     logDiag('TTS', 'Stop speaking (Interruption / Barge-in) triggered.');
+    audioLipSync.stop();
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+    if (fallbackAnimFrameRef.current) {
+      cancelAnimationFrame(fallbackAnimFrameRef.current);
+      fallbackAnimFrameRef.current = null;
+    }
+
     setIsSpeaking(false);
     isSpeakingRef.current = false;
     currentUtteranceRef.current = null;
@@ -368,7 +428,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     setMouthOpen(0);
     setCurrentViseme('rest');
 
-    // If voice session is active and mic not muted, resume listening
+    // If voice session is active and mic not muted, resume listening immediately
     if (isVoiceSessionActiveRef.current && !isMicMutedRef.current) {
       setTimeout(() => {
         startListeningLoopRef.current();
@@ -376,7 +436,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     }
   }, []);
 
-  // 6. Speech-to-Text Listening Loop with Watchdog Timers and Interim Fallback
+  // 6. Speech-to-Text Listening Loop
   const startListeningLoop = useCallback(() => {
     clearTimers();
 
@@ -400,7 +460,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       }
 
       const recognition = new SpeechRecognitionClass();
-      recognition.continuous = false; // Turn-based mode eliminates buffer duplication
+      recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
       submissionLockRef.current = false;
@@ -414,14 +474,13 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         setInterimTranscript('');
         setSttError(null);
 
-        // Watchdog Timer 1: If completely silent for 8 seconds, encourage the user
+        // Watchdog: detect complete silence after 8s and 14s
         watchdogTimerRef.current = setTimeout(() => {
           logDiag('STT', 'Watchdog 8s fired: No speech activity detected yet.');
-          // Watchdog Timer 2: If still no speech after 14s, recover gracefully
           watchdogTimerRef.current = setTimeout(() => {
-            logDiag('STT', 'Watchdog 14s fired: No speech detected. Recovering to ready state.');
+            logDiag('STT', 'Watchdog 14s fired: No speech detected.');
             if (!submissionLockRef.current && isListeningRef.current) {
-              setSttError('No speech was detected. Please click the mic or ask a question.');
+              setSttError('No speech was detected. Please ask a question or click the mic.');
               try { recognition.stop(); } catch {}
               setIsListening(false);
             }
@@ -452,7 +511,6 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         logDiag('STT', `onresult: interim="${currentInterim}", final="${currentFinal}"`);
 
         if (currentFinal.trim()) {
-          // Final transcript received from browser
           setTranscript(currentFinal);
           setInterimTranscript('');
 
@@ -465,16 +523,14 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
             handleUserMessageRef.current(currentFinal);
           }
         } else if (currentInterim.trim()) {
-          // Interim transcript live streaming
           setInterimTranscript(currentInterim);
 
-          // Interim Silence Detection: If user pauses after speaking words for 1.4 seconds, auto-submit!
           if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
           silenceTimeoutRef.current = setTimeout(() => {
             if (!submissionLockRef.current && latestTranscriptRef.current.trim().length > 1) {
               submissionLockRef.current = true;
               const pendingText = latestTranscriptRef.current.trim();
-              logDiag('STT', `Silence timeout auto-submitting interim transcript: "${pendingText}". Transitioning -> Processing.`);
+              logDiag('STT', `Silence timeout submitting interim: "${pendingText}". Transitioning -> Processing.`);
               setTranscript(pendingText);
               setInterimTranscript('');
               setIsListening(false);
@@ -492,20 +548,19 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         setIsListening(false);
 
         if (event.error === 'not-allowed') {
-          const err = 'Microphone permission was denied. Please allow microphone access in your browser settings to talk with Mr. Kennedy.';
+          const err = 'Microphone permission was denied. Please allow microphone access in your browser to speak with Mr. Kennedy.';
           logDiag('Mic', err);
           setSttError(err);
           setIsVoiceSessionActive(false);
         } else if (event.error === 'no-speech') {
-          // Silent timeout
           logDiag('STT', 'SpeechRecognition reported no-speech.');
           if (!submissionLockRef.current && !latestTranscriptRef.current.trim()) {
             setSttError('No speech was detected. Click below to retry or type your question.');
           }
         } else if (event.error === 'audio-capture') {
-          setSttError('No microphone audio received. Please verify your system microphone is plugged in and unmuted.');
+          setSttError('No microphone audio received. Please check your system audio input.');
         } else if (event.error === 'network') {
-          setSttError('Speech recognition network service error. Please check your internet connection or use text chat.');
+          setSttError('Speech recognition network error. Please check your internet connection or use text chat.');
         } else if (event.error !== 'aborted') {
           setSttError(`Voice input error: ${event.error}`);
         }
@@ -516,11 +571,11 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         clearTimers();
         setIsListening(false);
 
-        // Fallback Recovery: If recognition ended and had pending interim text that wasn't locked:
+        // Fallback recovery if unsubmitted interim text exists
         if (!submissionLockRef.current && latestTranscriptRef.current.trim().length > 1) {
           submissionLockRef.current = true;
           const capturedText = latestTranscriptRef.current.trim();
-          logDiag('STT', `onend fallback auto-submitting transcript: "${capturedText}"`);
+          logDiag('STT', `onend fallback submitting transcript: "${capturedText}"`);
           setTranscript(capturedText);
           setInterimTranscript('');
           setIsProcessing(true);
@@ -528,7 +583,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
           return;
         }
 
-        // If session is active and no speech was submitted, re-arm listening after brief pause
+        // Re-arm listening loop if active and no speech was in flight
         if (
           isVoiceSessionActiveRef.current &&
           !isMicMutedRef.current &&
@@ -555,11 +610,11 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   }, [clearTimers]);
   startListeningLoopRef.current = startListeningLoop;
 
-  // 7. Text-To-Speech (TTS) with Real-Time Phoneme & Mouth Lip Sync
+  // 7. Spoken Audio Synthesis (Neural AI Voice with Browser Fallback)
   const speakText = useCallback(
-    (rawText: string) => {
-      if (!isVoiceOutputEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) {
-        logDiag('TTS', 'Speech synthesis skipped: output disabled or unsupported.');
+    async (rawText: string) => {
+      if (!isVoiceOutputEnabled) {
+        logDiag('TTS', 'Speech synthesis skipped: output muted.');
         setIsProcessing(false);
         if (isVoiceSessionActiveRef.current && !isMicMutedRef.current) {
           setTimeout(() => startListeningLoopRef.current(), 600);
@@ -567,12 +622,9 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         return;
       }
 
-      // Stop previous utterance
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeaking();
 
-      // Clean markdown tags and URLs for natural human prosody
+      // Clean text for natural spoken prosody
       const cleanText = rawText
         .replace(/[*_#`~[\]]/g, '')
         .replace(/https?:\/\/\S+/g, 'link')
@@ -582,7 +634,6 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         .trim();
 
       if (!cleanText) {
-        logDiag('TTS', 'Clean text is empty after sanitization.');
         setIsProcessing(false);
         if (isVoiceSessionActiveRef.current && !isMicMutedRef.current) {
           startListeningLoopRef.current();
@@ -592,128 +643,171 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
 
       setLastAssistantSnippet(cleanText.slice(0, 85) + (cleanText.length > 85 ? '...' : ''));
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-      utterance.rate = speechRate;
-      utterance.pitch = speechPitch;
-      utterance.volume = 1.0;
+      // STEP A: Attempt Neural AI Voice via Backend TTS API (OpenAI or ElevenLabs)
+      if (activeProviderRef.current !== 'browser') {
+        try {
+          logDiag('TTS', `Synthesizing neural voice via /api/tts (provider=${activeProviderRef.current}, voice=${selectedVoiceIdRef.current})`);
+          setIsProcessing(true);
 
-      let animAngle = 0;
-      let activeWord = '';
+          const audioBuffer = await voiceService.synthesizeSpeech({
+            text: cleanText,
+            voice: selectedVoiceIdRef.current,
+            provider: activeProviderRef.current,
+            speed: speechRate,
+          });
 
-      const animateMouthDuringSpeech = () => {
-        if (!isSpeakingRef.current) return;
+          if (audioBuffer && audioBuffer.byteLength > 0) {
+            logDiag('TTS', `Neural audio received (${audioBuffer.byteLength} bytes). Playing through Web Audio Analyser.`);
+            setIsProcessing(false);
+            setIsSpeaking(true);
+            isSpeakingRef.current = true;
 
-        animAngle += 0.32;
-        const base = 0.55;
-        const wave = Math.sin(animAngle) * 0.3 + Math.cos(animAngle * 2.3) * 0.15;
-        const level = Math.max(0.08, Math.min(1.0, base + wave));
-
-        setAudioLevel(level);
-        setMouthOpen(level);
-
-        if (activeWord) {
-          const w = activeWord.toLowerCase();
-          if (w.includes('o') || w.includes('u')) {
-            setCurrentViseme('oh');
-          } else if (w.includes('e') || w.includes('i')) {
-            setCurrentViseme('ee');
-          } else if (w.includes('m') || w.includes('b') || w.includes('p')) {
-            setCurrentViseme('mm');
-          } else if (w.includes('a')) {
-            setCurrentViseme('aa');
-          } else {
-            setCurrentViseme('aa');
-          }
-        } else {
-          setCurrentViseme(animAngle % 2 > 1 ? 'aa' : 'ee');
-        }
-
-        audioLoopFrameRef.current = requestAnimationFrame(animateMouthDuringSpeech);
-      };
-
-      utterance.onboundary = (e: SpeechSynthesisEvent) => {
-        if (e.name === 'word') {
-          const word = cleanText.substring(e.charIndex).split(/\s+/)[0] || '';
-          activeWord = word;
-        }
-      };
-
-      utterance.onstart = () => {
-        logDiag('TTS', 'Speech synthesis utterance onstart. State -> speaking');
-        setIsSpeaking(true);
-        setIsProcessing(false);
-        isSpeakingRef.current = true;
-
-        // Pause STT listening while assistant speaks to prevent acoustic feedback loop
-        if (recognitionRef.current) {
-          try { recognitionRef.current.abort(); } catch {}
-          setIsListening(false);
-        }
-        audioLoopFrameRef.current = requestAnimationFrame(animateMouthDuringSpeech);
-      };
-
-      utterance.onend = () => {
-        logDiag('TTS', 'Speech synthesis utterance onend. State -> ready / listening');
-        setIsSpeaking(false);
-        isSpeakingRef.current = false;
-        currentUtteranceRef.current = null;
-        if (audioLoopFrameRef.current) {
-          cancelAnimationFrame(audioLoopFrameRef.current);
-          audioLoopFrameRef.current = null;
-        }
-        // Strict stop: immediately reset mouth and audio level
-        setAudioLevel(0);
-        setMouthOpen(0);
-        setCurrentViseme('rest');
-
-        // Continuous conversational loop: auto-relaunch listening after comfort pause
-        if (isVoiceSessionActiveRef.current && !isMicMutedRef.current) {
-          logDiag('State', 'Auto-transitioning from Speaking -> Listening.');
-          setTimeout(() => {
-            if (isVoiceSessionActiveRef.current && !isSpeakingRef.current) {
-              soundSynth.playAssistantListeningPing();
-              startListeningLoopRef.current();
+            // Pause microphone STT while assistant speaks to prevent acoustic feedback loop
+            if (recognitionRef.current) {
+              try { recognitionRef.current.abort(); } catch {}
+              setIsListening(false);
             }
-          }, 350);
+
+            // Play decoded audio buffer with real-time FFT frequency lip-sync!
+            await audioLipSync.playAudioBuffer(
+              audioBuffer,
+              (frame) => {
+                setAudioLevel(frame.audioLevel);
+                setMouthOpen(frame.mouthOpen);
+                setCurrentViseme(frame.viseme);
+              },
+              () => {
+                logDiag('TTS', 'Neural audio playback completed.');
+                setIsSpeaking(false);
+                isSpeakingRef.current = false;
+                setAudioLevel(0);
+                setMouthOpen(0);
+                setCurrentViseme('rest');
+
+                // Continuous conversational loop: auto-relaunch listening after speech finishes
+                if (isVoiceSessionActiveRef.current && !isMicMutedRef.current) {
+                  logDiag('State', 'Auto-transitioning from Speaking -> Listening.');
+                  setTimeout(() => {
+                    if (isVoiceSessionActiveRef.current && !isSpeakingRef.current) {
+                      soundSynth.playAssistantListeningPing();
+                      startListeningLoopRef.current();
+                    }
+                  }, 350);
+                }
+              }
+            );
+            return;
+          }
+        } catch (err) {
+          logDiag('TTS', 'Neural TTS synthesis failed, falling back to browser speech synthesis:', err);
         }
-      };
+      }
 
-      utterance.onerror = (e) => {
-        logDiag('TTS', 'Speech synthesis error:', e);
-        setIsSpeaking(false);
-        setIsProcessing(false);
-        isSpeakingRef.current = false;
-        currentUtteranceRef.current = null;
-        setAudioLevel(0);
-        setMouthOpen(0);
-        setCurrentViseme('rest');
-
-        if (isVoiceSessionActiveRef.current && !isMicMutedRef.current) {
-          setTimeout(() => startListeningLoopRef.current(), 400);
+      // STEP B: Fallback to Browser SpeechSynthesis if Neural Voice unavailable
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        logDiag('TTS', 'Executing browser speech synthesis fallback.');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
         }
-      };
+        utterance.rate = speechRate;
+        utterance.pitch = speechPitch;
+        utterance.volume = 1.0;
 
-      currentUtteranceRef.current = utterance;
-      logDiag('TTS', `Executing window.speechSynthesis.speak() (voice="${selectedVoice?.name || 'default'}")`);
-      window.speechSynthesis.speak(utterance);
+        let animAngle = 0;
+        let activeWord = '';
+
+        const animateMouthFallback = () => {
+          if (!isSpeakingRef.current) return;
+          animAngle += 0.32;
+          const base = 0.55;
+          const wave = Math.sin(animAngle) * 0.3 + Math.cos(animAngle * 2.3) * 0.15;
+          const level = Math.max(0.08, Math.min(1.0, base + wave));
+
+          setAudioLevel(level);
+          setMouthOpen(level);
+
+          if (activeWord) {
+            const w = activeWord.toLowerCase();
+            if (w.includes('o') || w.includes('u')) setCurrentViseme('oh');
+            else if (w.includes('e') || w.includes('i')) setCurrentViseme('ee');
+            else if (w.includes('m') || w.includes('b') || w.includes('p')) setCurrentViseme('mm');
+            else setCurrentViseme('aa');
+          } else {
+            setCurrentViseme(animAngle % 2 > 1 ? 'aa' : 'ee');
+          }
+
+          fallbackAnimFrameRef.current = requestAnimationFrame(animateMouthFallback);
+        };
+
+        utterance.onboundary = (e: SpeechSynthesisEvent) => {
+          if (e.name === 'word') {
+            const word = cleanText.substring(e.charIndex).split(/\s+/)[0] || '';
+            activeWord = word;
+          }
+        };
+
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+          setIsProcessing(false);
+          isSpeakingRef.current = true;
+          if (recognitionRef.current) {
+            try { recognitionRef.current.abort(); } catch {}
+            setIsListening(false);
+          }
+          fallbackAnimFrameRef.current = requestAnimationFrame(animateMouthFallback);
+        };
+
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          isSpeakingRef.current = false;
+          currentUtteranceRef.current = null;
+          if (fallbackAnimFrameRef.current) {
+            cancelAnimationFrame(fallbackAnimFrameRef.current);
+            fallbackAnimFrameRef.current = null;
+          }
+          setAudioLevel(0);
+          setMouthOpen(0);
+          setCurrentViseme('rest');
+
+          if (isVoiceSessionActiveRef.current && !isMicMutedRef.current) {
+            setTimeout(() => {
+              if (isVoiceSessionActiveRef.current && !isSpeakingRef.current) {
+                soundSynth.playAssistantListeningPing();
+                startListeningLoopRef.current();
+              }
+            }, 350);
+          }
+        };
+
+        utterance.onerror = (e) => {
+          logDiag('TTS', 'Browser speech synthesis error:', e);
+          setIsSpeaking(false);
+          setIsProcessing(false);
+          isSpeakingRef.current = false;
+          currentUtteranceRef.current = null;
+          setAudioLevel(0);
+          setMouthOpen(0);
+          setCurrentViseme('rest');
+        };
+
+        currentUtteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+      }
     },
-    [isVoiceOutputEnabled, selectedVoice, speechRate, speechPitch]
+    [isVoiceOutputEnabled, selectedVoice, speechRate, speechPitch, stopSpeaking]
   );
 
-  // 8. Send user message & generate grounded response from AI engine
+  // 8. Send user message & generate response using verified portfolio knowledge engine
   const handleUserMessage = useCallback(
     async (textToSend?: string) => {
       const text = (textToSend || '').trim();
       if (!text) {
-        logDiag('AI', 'Empty query text passed to handleUserMessage. Ignoring.');
         setIsProcessing(false);
         return;
       }
 
-      logDiag('AI', `Submitting question to KennedyKnowledgeEngine: "${text}"`);
+      logDiag('AI', `Submitting question: "${text}"`);
       stopSpeaking();
       generationAbortRef.current = false;
       setIsProcessing(true);
@@ -721,7 +815,6 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
 
       const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Add user message to conversation history
       const userMsg: ChatMessage = {
         id: `user-${Date.now()}`,
         sender: 'user',
@@ -732,16 +825,12 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       setMessages((prev) => [...prev, userMsg]);
 
       try {
-        const queryStart = performance.now();
         const historyContext = messages.map((m) => ({ sender: m.sender, text: m.text }));
-        
-        // Query Mr. Kennedy's verified domain knowledge engine
+
+        // 1. Query Verified Knowledge Engine for Grounded Answer
         const response: AssistantResponse = await kennedyEngine.query(text, historyContext);
-        const queryDuration = (performance.now() - queryStart).toFixed(0);
-        logDiag('AI', `Knowledge engine returned response in ${queryDuration}ms (confidence=${response.confidence})`);
 
         if (generationAbortRef.current) {
-          logDiag('AI', 'Generation aborted by user.');
           setIsProcessing(false);
           return;
         }
@@ -749,7 +838,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         const assistantMsgId = `assistant-${Date.now()}`;
         const fullText = response.text;
 
-        // Streaming text effect
+        // Visual streaming text display
         const streamingMsg: ChatMessage = {
           id: assistantMsgId,
           sender: 'assistant',
@@ -763,7 +852,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         setMessages((prev) => [...prev, streamingMsg]);
 
         const words = fullText.split(' ');
-        const step = Math.max(1, Math.floor(words.length / 26));
+        const step = Math.max(1, Math.floor(words.length / 24));
 
         for (let i = 0; i < words.length; i += step) {
           if (generationAbortRef.current) break;
@@ -775,7 +864,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
           await new Promise((r) => setTimeout(r, 16));
         }
 
-        // Finalize full text in messages
+        // Finalize text
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
@@ -784,12 +873,12 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
           )
         );
 
-        // Speak response aloud in Mr. Kennedy's natural voice
+        // Speak aloud using natural AI voice
         if (!generationAbortRef.current) {
-          speakText(fullText);
+          await speakText(fullText);
         }
       } catch (err: any) {
-        logDiag('AI', 'Error querying assistant knowledge engine:', err);
+        logDiag('AI', 'Error querying assistant engine:', err);
         const errorMsg: ChatMessage = {
           id: `assistant-err-${Date.now()}`,
           sender: 'assistant',
@@ -805,13 +894,12 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   );
   handleUserMessageRef.current = handleUserMessage;
 
-  // 9. Start Persistent Voice Session (Explicit User Trigger)
+  // 9. Start Voice Session (Explicit User Trigger with Mic Permission)
   const startVoiceSession = useCallback(async () => {
     logDiag('Session', 'startVoiceSession explicitly triggered by visitor.');
     setSttError(null);
     stopSpeaking();
 
-    // Verify microphone access via Web Audio getUserMedia
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         logDiag('Mic', 'Requesting microphone permission with acoustic constraints...');
@@ -822,10 +910,10 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
             autoGainControl: true,
           },
         });
-        logDiag('Mic', 'Microphone permission granted successfully by user.');
+        logDiag('Mic', 'Microphone permission granted successfully.');
         mediaStreamRef.current = stream;
 
-        // Setup real-time AnalyserNode for audio level input metering
+        // Real-time mic audio analyser
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
         if (AudioCtx) {
           const ctx = new AudioCtx();
@@ -852,7 +940,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
               const avg = sum / dataArray.length;
               const normalized = Math.min(1.0, avg / 128);
               setAudioLevel(normalized);
-            } else {
+            } else if (!isSpeakingRef.current) {
               setAudioLevel(0);
             }
             micPollingFrameRef.current = requestAnimationFrame(pollMicLevel);
@@ -866,7 +954,6 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       setIsMicMuted(false);
       isMicMutedRef.current = false;
 
-      // Play pleasant futuristic startup chime
       soundSynth.playAssistantSessionStart();
 
       setTimeout(() => {
@@ -886,9 +973,9 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     }
   }, [stopSpeaking]);
 
-  // 10. End Persistent Voice Session
+  // 10. End Voice Session
   const endVoiceSession = useCallback(() => {
-    logDiag('Session', 'endVoiceSession explicitly triggered. Releasing all resources.');
+    logDiag('Session', 'endVoiceSession triggered. Releasing all resources.');
     setIsVoiceSessionActive(false);
     isVoiceSessionActiveRef.current = false;
     cleanupAudioResources();
@@ -917,9 +1004,9 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     });
   }, []);
 
-  // 12. Retry Listening Control (For stuck state recovery)
+  // 12. Retry Listening Control
   const retryListening = useCallback(() => {
-    logDiag('Session', 'retryListening called. Resetting errors and re-arming recognition.');
+    logDiag('Session', 'retryListening called.');
     setSttError(null);
     clearTimers();
     submissionLockRef.current = false;
@@ -933,32 +1020,100 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     }
   }, [clearTimers, startVoiceSession, stopSpeaking]);
 
-  // Stop current generation
-  const stopGeneration = useCallback(() => {
-    generationAbortRef.current = true;
-    setIsProcessing(false);
-  }, []);
-
-  // Clear chat history
-  const clearChat = useCallback(() => {
-    stopSpeaking();
-    setMessages([WELCOME_MESSAGE]);
-  }, [stopSpeaking]);
-
-  // Toggle voice output mute
-  const toggleVoiceOutput = useCallback(() => {
-    setIsVoiceOutputEnabled((prev) => {
-      const next = !prev;
-      if (!next) {
-        stopSpeaking();
+  // Voice Selection handler
+  const handleSelectVoiceId = useCallback((id: string) => {
+    setSelectedVoiceId(id);
+    const found = availableVoices.find((v) => v.id === id);
+    if (found) {
+      setActiveProvider(found.provider);
+      setIsNeuralVoiceActive(found.isNeural);
+      if (found.voice) {
+        setSelectedVoice(found.voice);
       }
-      return next;
-    });
-  }, [stopSpeaking]);
+    }
+  }, [availableVoices]);
 
-  // Handle Action Trigger from message action pills
-  const handleActionClick = useCallback(
-    (action: ChatAction) => {
+  // State machine value
+  const assistantState: AssistantState = sttError
+    ? 'error'
+    : isMicMuted
+    ? 'muted'
+    : isSpeaking
+    ? 'speaking'
+    : isProcessing
+    ? 'processing'
+    : isListening
+    ? 'listening'
+    : isVoiceSessionActive
+    ? 'ready'
+    : 'idle';
+
+  const value: KennedyVoiceContextType = {
+    isChatOpen,
+    openChat: () => setIsChatOpen(true),
+    closeChat: () => setIsChatOpen(false),
+    toggleChat: () => setIsChatOpen((prev) => !prev),
+    isChatMinimized,
+    setIsChatMinimized,
+
+    isVoiceSessionActive,
+    assistantState,
+    isSpeaking,
+    isListening,
+    isProcessing,
+    isMicMuted,
+    sttSupported,
+    sttError,
+    transcript,
+    interimTranscript,
+    lastAssistantSnippet,
+
+    audioLevel,
+    mouthOpen,
+    currentViseme,
+
+    startVoiceSession,
+    endVoiceSession,
+    toggleMicMute,
+    stopSpeaking,
+    retryListening,
+
+    messages,
+    sendMessage: handleUserMessage,
+    stopGeneration: () => {
+      generationAbortRef.current = true;
+      setIsProcessing(false);
+    },
+    clearChat: () => {
+      stopSpeaking();
+      setMessages([WELCOME_MESSAGE]);
+    },
+
+    isVoiceOutputEnabled,
+    toggleVoiceOutput: () => {
+      setIsVoiceOutputEnabled((prev) => {
+        const next = !prev;
+        if (!next) stopSpeaking();
+        return next;
+      });
+    },
+    availableVoices,
+    selectedVoiceId,
+    setSelectedVoiceId: handleSelectVoiceId,
+    selectedVoice,
+    setSelectedVoice,
+    speechRate,
+    setSpeechRate,
+    speechPitch,
+    setSpeechPitch,
+    activeProvider,
+    setActiveProvider,
+    isNeuralVoiceActive,
+
+    onOpenProjectModal,
+    onScrollToSection,
+    onOpenLabTab,
+    handleActionClick: (action: ChatAction) => {
       stopSpeaking();
       switch (action.type) {
         case 'project_modal':
@@ -976,80 +1131,6 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
           break;
       }
     },
-    [onOpenLabTab, onOpenProjectModal, onScrollToSection, stopSpeaking]
-  );
-
-  // Compute formal state machine value
-  const assistantState: AssistantState = sttError
-    ? 'error'
-    : isMicMuted
-    ? 'muted'
-    : isSpeaking
-    ? 'speaking'
-    : isProcessing
-    ? 'processing'
-    : isListening
-    ? 'listening'
-    : isVoiceSessionActive
-    ? 'ready'
-    : 'idle';
-
-  const value: KennedyVoiceContextType = {
-    // Chat Modal UI
-    isChatOpen,
-    openChat: () => setIsChatOpen(true),
-    closeChat: () => setIsChatOpen(false),
-    toggleChat: () => setIsChatOpen((prev) => !prev),
-    isChatMinimized,
-    setIsChatMinimized,
-
-    // Voice Session State
-    isVoiceSessionActive,
-    assistantState,
-    isSpeaking,
-    isListening,
-    isProcessing,
-    isMicMuted,
-    sttSupported,
-    sttError,
-    transcript,
-    interimTranscript,
-    lastAssistantSnippet,
-
-    // Audio & Lip Sync
-    audioLevel,
-    mouthOpen,
-    currentViseme,
-
-    // Controls
-    startVoiceSession,
-    endVoiceSession,
-    toggleMicMute,
-    stopSpeaking,
-    retryListening,
-
-    // Conversation
-    messages,
-    sendMessage: handleUserMessage,
-    stopGeneration,
-    clearChat,
-
-    // Voice Settings
-    isVoiceOutputEnabled,
-    toggleVoiceOutput,
-    availableVoices,
-    selectedVoice,
-    setSelectedVoice,
-    speechRate,
-    setSpeechRate,
-    speechPitch,
-    setSpeechPitch,
-
-    // Action Handlers
-    onOpenProjectModal,
-    onScrollToSection,
-    onOpenLabTab,
-    handleActionClick,
   };
 
   return (

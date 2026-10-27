@@ -33,6 +33,11 @@ export function useKennedyVoiceAssistant(_options: UseKennedyVoiceAssistantOptio
     setSpeechRate: ctx.setSpeechRate,
     speechPitch: ctx.speechPitch,
     setSpeechPitch: ctx.setSpeechPitch,
+    selectedVoiceId: ctx.selectedVoiceId,
+    setSelectedVoiceId: ctx.setSelectedVoiceId,
+    activeProvider: ctx.activeProvider,
+    setActiveProvider: ctx.setActiveProvider,
+    isNeuralVoiceActive: ctx.isNeuralVoiceActive,
 
     // Voice session & input
     isVoiceSessionActive: ctx.isVoiceSessionActive,

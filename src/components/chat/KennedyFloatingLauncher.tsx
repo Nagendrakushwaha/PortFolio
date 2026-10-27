@@ -27,7 +27,16 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
   const voice = useKennedyVoiceAssistant();
 
   const isOpen = propIsOpen !== undefined ? propIsOpen : voice.isChatOpen;
-  const handleToggle = propOnToggle || voice.toggleChat;
+  const isPanelCollapsed = !isOpen || voice.isChatMinimized;
+  const handleToggle = () => {
+    if (voice.isChatMinimized) {
+      voice.setIsChatMinimized(false);
+    } else if (propOnToggle) {
+      propOnToggle();
+    } else {
+      voice.toggleChat();
+    }
+  };
   const isSpeaking = propIsSpeaking !== undefined ? propIsSpeaking : voice.isSpeaking;
   const isListening = propIsListening !== undefined ? propIsListening : voice.isListening;
   const isProcessing = voice.isProcessing;
@@ -54,7 +63,7 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
       className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end space-y-2 pointer-events-none"
     >
       {/* 1. Live Conversational Speech Subtitle / Error Bubble */}
-      {isVoiceSessionActive && !isOpen && activeSubtitle && showSubtitle && (
+      {isVoiceSessionActive && isPanelCollapsed && activeSubtitle && showSubtitle && (
         <div className="pointer-events-auto max-w-[280px] sm:max-w-sm mb-1 px-3.5 py-2 rounded-2xl bg-slate-950/95 border border-cyan-500/40 text-xs font-mono shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between text-[10px] text-slate-400 pb-1 mb-1 border-b border-white/10">
             <span className="flex items-center space-x-1.5 font-bold">
@@ -123,8 +132,8 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
 
       {/* 2. Floating Companion HUD Bar */}
       <div className="pointer-events-auto flex items-center space-x-2">
-        {/* If voice session is ACTIVE and chat is closed: Quick Controls Bar */}
-        {isVoiceSessionActive && !isOpen && (
+        {/* If voice session is ACTIVE and chat is closed or minimized: Quick Controls Bar */}
+        {isVoiceSessionActive && isPanelCollapsed && (
           <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-xs font-mono animate-in fade-in duration-200">
             {/* Live State Badge Pill */}
             <div className="flex items-center space-x-1.5 pr-2 border-r border-white/15">
@@ -213,8 +222,8 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
           </div>
         )}
 
-        {/* If NO voice session is active and chat is closed: Starter Buttons */}
-        {!isVoiceSessionActive && !isOpen && (
+        {/* If NO voice session is active and chat is closed or minimized: Starter Buttons */}
+        {!isVoiceSessionActive && isPanelCollapsed && (
           <div className="hidden sm:flex items-center space-x-2">
             <button
               onClick={voice.startVoiceSession}
@@ -238,9 +247,9 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
         {/* Primary Floating Avatar Anchor Orb */}
         <button
           onClick={handleToggle}
-          aria-label={isOpen ? 'Minimize Mr. Kennedy Panel' : 'Open Mr. Kennedy AI Assistant'}
+          aria-label={!isPanelCollapsed ? 'Minimize Mr. Kennedy Panel' : 'Open Mr. Kennedy AI Assistant'}
           className={`relative rounded-full p-[2px] transition-all duration-300 hover:scale-108 focus:outline-none focus:ring-2 focus:ring-cyan-400 shadow-2xl ${
-            isOpen
+            !isPanelCollapsed
               ? 'ring-2 ring-indigo-500/60'
               : isVoiceSessionActive
               ? isSpeaking

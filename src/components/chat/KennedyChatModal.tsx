@@ -60,7 +60,8 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const isMinimized = voice.isChatMinimized;
+  const setIsMinimized = voice.setIsChatMinimized;
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -191,10 +192,12 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                     className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono border ${
                       voice.isVoiceSessionActive
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                        : voice.isNeuralVoiceActive
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                         : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     }`}
                   >
-                    {voice.isVoiceSessionActive ? 'VOICE LIVE' : 'AI VOICE'}
+                    {voice.isVoiceSessionActive ? 'VOICE LIVE' : voice.isNeuralVoiceActive ? 'NEURAL AI VOICE' : 'AI VOICE'}
                   </span>
                 </h3>
               </div>
@@ -291,7 +294,7 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
 
             {/* Minimize / Maximize Window */}
             <button
-              onClick={() => setIsMinimized((prev) => !prev)}
+              onClick={() => setIsMinimized(!isMinimized)}
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
               title={isMinimized ? 'Expand Chat Panel' : 'Minimize Chat Panel'}
             >
@@ -335,62 +338,108 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
 
             {/* Voice Settings Flyout */}
             {showSettings && (
-              <div className="p-3 bg-slate-900 border-b border-white/10 text-xs font-mono space-y-3 z-10 animate-in fade-in duration-200">
+              <div className="p-3.5 bg-slate-900 border-b border-white/10 text-xs font-mono space-y-3 z-10 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between text-slate-300 font-bold">
-                  <span>Mr. Kennedy Voice Configuration</span>
-                  <span className="text-[10px] text-cyan-400">Natural Synthesis</span>
+                  <span className="flex items-center space-x-1.5">
+                    <span>Mr. Kennedy AI Voice Settings</span>
+                    <span
+                      className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
+                        voice.isNeuralVoiceActive
+                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                          : 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50'
+                      }`}
+                    >
+                      {voice.isNeuralVoiceActive ? 'Neural Engine Active' : 'Standard Engine'}
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-cyan-400 capitalize">{voice.activeProvider}</span>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400">Selected Voice:</label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] text-slate-400 font-semibold">Voice Model & Accent:</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        voice.speak("Hello! I am Mr. Kennedy, Nagendra's AI portfolio voice companion. How may I assist you today?");
+                      }}
+                      className="text-[10px] text-cyan-300 hover:text-cyan-100 flex items-center space-x-1 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/40 hover:bg-cyan-900 transition-all"
+                      title="Listen to a voice preview"
+                    >
+                      <Volume2 className="w-2.5 h-2.5" />
+                      <span>Test Voice</span>
+                    </button>
+                  </div>
                   <select
-                    value={voice.selectedVoice?.name || ''}
+                    value={voice.selectedVoiceId}
                     onChange={(e) => {
-                      const found = voice.availableVoices.find((v) => v.voice.name === e.target.value);
-                      if (found) voice.setSelectedVoice(found.voice);
+                      voice.setSelectedVoiceId(e.target.value);
                     }}
-                    className="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
+                    className="w-full px-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-cyan-500 font-sans"
                   >
-                    {voice.availableVoices.map((v, i) => (
-                      <option key={i} value={v.voice.name}>
-                        {v.displayName}
-                      </option>
-                    ))}
+                    {voice.availableVoices.length === 0 ? (
+                      <option value="echo">Echo (Default Neural Male Voice)</option>
+                    ) : (
+                      <>
+                        <optgroup label="✨ Neural Conversational AI Voices (OpenAI & ElevenLabs)">
+                          {voice.availableVoices
+                            .filter((v) => v.isNeural)
+                            .map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.displayName}
+                              </option>
+                            ))}
+                        </optgroup>
+                        <optgroup label="🌐 Local Browser Voices (Offline Fallback)">
+                          {voice.availableVoices
+                            .filter((v) => !v.isNeural)
+                            .map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.displayName}
+                              </option>
+                            ))}
+                        </optgroup>
+                      </>
+                    )}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Speed</span>
-                      <span>{voice.speechRate.toFixed(1)}x</span>
+                      <span>Conversational Speed</span>
+                      <span className="text-cyan-300">{voice.speechRate.toFixed(1)}x</span>
                     </div>
                     <input
                       type="range"
                       min="0.8"
-                      max="1.4"
-                      step="0.1"
+                      max="1.3"
+                      step="0.05"
                       value={voice.speechRate}
                       onChange={(e) => voice.setSpeechRate(parseFloat(e.target.value))}
-                      className="w-full accent-cyan-500 h-1 bg-slate-800 rounded"
+                      className="w-full accent-cyan-500 h-1 bg-slate-800 rounded cursor-pointer"
                     />
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Pitch</span>
-                      <span>{voice.speechPitch.toFixed(2)}</span>
+                      <span>Vocal Pitch</span>
+                      <span className="text-cyan-300">{voice.speechPitch.toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
                       min="0.85"
-                      max="1.25"
+                      max="1.2"
                       step="0.05"
                       value={voice.speechPitch}
                       onChange={(e) => voice.setSpeechPitch(parseFloat(e.target.value))}
-                      className="w-full accent-cyan-500 h-1 bg-slate-800 rounded"
+                      className="w-full accent-cyan-500 h-1 bg-slate-800 rounded cursor-pointer"
                     />
                   </div>
+                </div>
+
+                <div className="p-2 rounded bg-slate-950/80 border border-white/5 text-[10px] text-slate-400 leading-relaxed">
+                  <span className="text-cyan-400 font-semibold">Note:</span> High-fidelity natural voice runs on the secure backend via OpenAI / ElevenLabs API. If credentials are not set in <code className="text-cyan-300">.env</code>, Mr. Kennedy automatically utilizes the verified local knowledge engine and standard browser voice.
                 </div>
               </div>
             )}
