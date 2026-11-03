@@ -151,14 +151,27 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
       // Smooth mouse lerp for parallax
       mouseRef.current.lerp(targetMouseRef.current, delta * 3);
 
-      // Starfield update (paused if user prefers reduced motion)
-      if (starfieldRef.current && !reducedMotion) {
-        starfieldRef.current.update(delta, speedMultiplierRef.current);
+      // Compute mouse ray point in 3D space for particle interaction
+      let mouseWorldPoint: THREE.Vector3 | undefined;
+      if (cameraRef.current && !reducedMotion) {
+        raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
+        mouseWorldPoint = new THREE.Vector3();
+        raycasterRef.current.ray.at(32, mouseWorldPoint);
       }
 
-      // Galaxy update (paused if user prefers reduced motion)
+      // Starfield update with cursor depth parallax
+      if (starfieldRef.current && !reducedMotion) {
+        starfieldRef.current.update(
+          delta, 
+          speedMultiplierRef.current, 
+          mouseRef.current.x, 
+          mouseRef.current.y
+        );
+      }
+
+      // Galaxy update with intelligent cursor particle deflection
       if (galaxyRef.current && !reducedMotion) {
-        galaxyRef.current.update(delta);
+        galaxyRef.current.update(delta, mouseWorldPoint);
       }
 
       // Wormhole update

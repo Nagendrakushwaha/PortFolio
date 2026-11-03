@@ -109,10 +109,10 @@ export const SkillsSection: React.FC = () => {
       <div className="space-y-4 text-center max-w-3xl mx-auto mb-10">
         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-xs font-mono text-indigo-700 shadow-sm font-semibold">
           <Cpu className="w-3.5 h-3.5 text-indigo-600" />
-          <span>TECHNICAL COMPETENCIES & TOOLSET</span>
+          <span>TECHNICAL COMPETENCIES &amp; TOOLSET</span>
         </div>
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-slate-900 tracking-tight">
-          Skills, Frameworks & Specializations
+          Skills, Frameworks &amp; Specializations
         </h2>
         <p className="text-sm sm:text-base font-mono text-slate-600">
           57 verified skills across algorithmic programming, classical machine learning, deep neural architectures, conversational AI, and scalable data systems.

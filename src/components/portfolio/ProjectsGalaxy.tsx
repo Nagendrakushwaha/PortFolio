@@ -42,7 +42,7 @@ export const ProjectsGalaxy: React.FC<ProjectsGalaxyProps> = ({ onOpenDemo }) =>
           <span>VERIFIED PROJECT CONSTELLATION</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-slate-900">
-          Real AI Systems & Empirical Architectures
+          Real AI Systems &amp; Empirical Architectures
         </h2>
         <p className="text-sm font-mono text-slate-600">
           {projectsData.length} verified projects with real benchmarks, model architectures, and open-source repositories.

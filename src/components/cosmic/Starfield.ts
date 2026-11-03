@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /**
  * High-performance instanced multi-layer starfield
- * Includes distant stars, bright foreground stars, and warp acceleration support.
+ * Includes distant stars, bright foreground stars, depth parallax, and warp acceleration support.
  */
 export class Starfield {
   public group: THREE.Group;
@@ -17,7 +17,7 @@ export class Starfield {
   private count: number;
   private initialPositions: Float32Array;
 
-  constructor(count: number = 2200) {
+  constructor(count: number = 2400) {
     this.group = new THREE.Group();
     this.count = count;
 
@@ -37,7 +37,7 @@ export class Starfield {
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
       // Cylindrical / spherical spread along z-axis for deep travel
-      const radius = 35 + Math.random() * 260;
+      const radius = 30 + Math.random() * 260;
       const theta = Math.random() * Math.PI * 2;
       const z = (Math.random() - 0.5) * 800;
 
@@ -67,9 +67,9 @@ export class Starfield {
     const ctx = canvas.getContext('2d');
     if (ctx) {
       const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-      gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
-      gradient.addColorStop(0.3, 'rgba(224,242,254,0.6)');
-      gradient.addColorStop(0.7, 'rgba(56,189,248,0.15)');
+      gradient.addColorStop(0, 'rgba(255,255,255,1.0)');
+      gradient.addColorStop(0.3, 'rgba(224,242,254,0.7)');
+      gradient.addColorStop(0.7, 'rgba(56,189,248,0.2)');
       gradient.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 32, 32);
@@ -77,11 +77,11 @@ export class Starfield {
     const starTexture = new THREE.CanvasTexture(canvas);
 
     this.starMaterial = new THREE.PointsMaterial({
-      size: 1.25,
+      size: 1.35,
       vertexColors: true,
       map: starTexture,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -94,7 +94,7 @@ export class Starfield {
     const linePositions = new Float32Array(6);
     this.shootingStarGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
     this.shootingStarMaterial = new THREE.LineBasicMaterial({
-      color: 0x00f2fe,
+      color: 0x38bdf8,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
@@ -103,11 +103,11 @@ export class Starfield {
     this.group.add(this.shootingStar);
   }
 
-  public update(delta: number, speedMultiplier: number = 1.0) {
+  public update(delta: number, speedMultiplier: number = 1.0, mouseX: number = 0, mouseY: number = 0) {
     const positionAttr = this.starGeometry.attributes.position as THREE.BufferAttribute;
     const array = positionAttr.array as Float32Array;
 
-    const zSpeed = (speedMultiplier > 2 ? 65 : 0.45) * speedMultiplier * delta * 60;
+    const zSpeed = (speedMultiplier > 2 ? 65 : 0.5) * speedMultiplier * delta * 60;
 
     for (let i = 0; i < this.count; i++) {
       const i3 = i * 3;
@@ -116,7 +116,6 @@ export class Starfield {
       // Wrap around when passing camera
       if (array[i3 + 2] > 200) {
         array[i3 + 2] = -600;
-        // slightly jitter radial positions for variety
         const radius = 25 + Math.random() * 240;
         const theta = Math.random() * Math.PI * 2;
         array[i3] = Math.cos(theta) * radius;
@@ -125,11 +124,15 @@ export class Starfield {
     }
     positionAttr.needsUpdate = true;
 
+    // Depth-based subtle parallax from cursor
+    this.group.rotation.y += (mouseX * 0.04 - this.group.rotation.y) * 0.05;
+    this.group.rotation.x += (-mouseY * 0.04 - this.group.rotation.x) * 0.05;
+
     // Twinkle & size stretch during warp
     if (speedMultiplier > 2) {
-      this.starMaterial.size = Math.min(3.0, 1.25 * (speedMultiplier * 0.4));
+      this.starMaterial.size = Math.min(3.2, 1.35 * (speedMultiplier * 0.4));
     } else {
-      this.starMaterial.size = 1.25;
+      this.starMaterial.size = 1.35;
       this.group.rotation.z += 0.00015 * delta * 60;
     }
 
@@ -139,7 +142,7 @@ export class Starfield {
 
   private updateShootingStar(delta: number) {
     this.shootingStarTimer += delta;
-    if (this.shootingStarTimer > 5 && !this.shootingStarActive) {
+    if (this.shootingStarTimer > 4.5 && !this.shootingStarActive) {
       this.shootingStarActive = true;
       this.shootingStarTimer = 0;
 
@@ -156,7 +159,7 @@ export class Starfield {
       arr[4] = sy - 10;
       arr[5] = sz + 8;
       pos.needsUpdate = true;
-      this.shootingStarMaterial.opacity = 0.85;
+      this.shootingStarMaterial.opacity = 0.9;
     }
 
     if (this.shootingStarActive) {

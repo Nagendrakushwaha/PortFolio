@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import type { SceneType, MultiverseWorldId, ProjectData } from './types/portfolio';
 import { CosmicCanvas } from './components/cosmic/CosmicCanvas';
 import { WebGLFallback } from './components/cosmic/WebGLFallback';
+import { CosmicCursorSystem } from './components/cosmic/CosmicCursorSystem';
 import { CosmicNavbar } from './components/navigation/CosmicNavbar';
 import { CosmicAwakening } from './components/scenes/CosmicAwakening';
 import { WormholeTransition } from './components/scenes/WormholeTransition';
@@ -46,39 +47,48 @@ const PortfolioContent: React.FC<{
   const prefersReducedMotion = useReducedMotion();
   const hasWebGL = useWebGLSupport();
 
-  // Enter Universe from Scene 01
-  const handleEnterUniverse = useCallback(() => {
+  // Enter Galaxy from Scene 01 (Cinematic Portal Warp)
+  const handleEnterGalaxy = useCallback(() => {
     playWarp();
+    try {
+      sessionStorage.setItem('hasEnteredGalaxy', 'true');
+    } catch {
+      // safe fallback if storage is restricted
+    }
     if (prefersReducedMotion) {
-      setActiveScene('multiverse');
+      setActiveScene('laboratory');
     } else {
       setActiveScene('wormhole');
     }
   }, [playWarp, prefersReducedMotion, setActiveScene]);
 
-  // Wormhole complete callback -> Arrival in Multiverse
+  // Wormhole complete callback -> Arrival in Homepage / Laboratory
   const handleWormholeComplete = useCallback(() => {
-    setActiveScene('multiverse');
+    setActiveScene('laboratory');
   }, [setActiveScene]);
 
   // Skip intro at any time
   const handleSkipIntro = useCallback(() => {
     playClick();
-    setActiveScene('multiverse');
+    try {
+      sessionStorage.setItem('hasEnteredGalaxy', 'true');
+    } catch {
+      // safe fallback
+    }
+    setActiveScene('laboratory');
   }, [playClick, setActiveScene]);
 
-  // Primary CTA: Explore AI projects directly
+  // About Me navigation CTA
+  const handleAboutMe = useCallback(() => {
+    playClick();
+    scrollToSection('about');
+  }, [playClick, scrollToSection]);
+
+  // Explore AI projects directly
   const handleExploreProjects = useCallback(() => {
     playClick();
     scrollToSection('projects');
   }, [playClick, scrollToSection]);
-
-  // Secondary CTA: View full portfolio overview
-  const handleViewPortfolio = useCallback(() => {
-    playClick();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setActiveScene('laboratory');
-  }, [playClick, setActiveScene]);
 
   // World selection in Multiverse
   const handleSelectWorld = useCallback((worldId: MultiverseWorldId) => {
@@ -97,6 +107,9 @@ const PortfolioContent: React.FC<{
 
   return (
     <div className="relative min-h-screen w-full bg-black text-slate-100 overflow-x-hidden">
+      {/* Advanced Interactive Cursor System with Dynamic Particle Trails & Ripples */}
+      <CosmicCursorSystem />
+
       {/* 3D Cosmic WebGL Background or 2D Fallback */}
       {hasWebGL ? (
         <CosmicCanvas
@@ -132,9 +145,8 @@ const PortfolioContent: React.FC<{
       {/* Dynamic Cinematic Scenes */}
       {activeScene === 'awakening' && (
         <CosmicAwakening
-          onExploreProjects={handleExploreProjects}
-          onViewPortfolio={handleViewPortfolio}
-          onEnterUniverse={handleEnterUniverse}
+          onEnterGalaxy={handleEnterGalaxy}
+          onSkipIntro={handleSkipIntro}
           onPlayClick={playClick}
           isMuted={isMuted}
           onToggleSound={toggleSound}
@@ -167,9 +179,10 @@ const PortfolioContent: React.FC<{
       {activeScene === 'laboratory' && (
         <AILaboratory
           onReturnToTop={handleReturnToTop}
-          onExploreProjects={() => scrollToSection('projects')}
+          onExploreProjects={handleExploreProjects}
           onExploreLab={() => scrollToSection('mllab')}
           onContact={() => scrollToSection('contact')}
+          onAboutMe={handleAboutMe}
         />
       )}
 
@@ -199,7 +212,16 @@ const PortfolioContent: React.FC<{
 };
 
 export const App: React.FC = () => {
-  const [activeScene, setActiveScene] = useState<SceneType>('awakening');
+  // Determine initial scene from session storage (don't force intro on every reload)
+  const [activeScene, setActiveScene] = useState<SceneType>(() => {
+    try {
+      const hasEntered = typeof window !== 'undefined' && sessionStorage.getItem('hasEnteredGalaxy');
+      return hasEntered === 'true' ? 'laboratory' : 'awakening';
+    } catch {
+      return 'awakening';
+    }
+  });
+
   const [selectedWorld, setSelectedWorld] = useState<MultiverseWorldId | null>(null);
   const [hoveredWorld, setHoveredWorld] = useState<MultiverseWorldId | null>(null);
   const [globalModalProject, setGlobalModalProject] = useState<ProjectData | null>(null);

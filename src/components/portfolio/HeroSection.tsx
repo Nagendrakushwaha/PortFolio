@@ -1,26 +1,48 @@
 import React from 'react';
-import { ArrowRight, Download, FlaskConical, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Download, FlaskConical, ShieldCheck, Sparkles, User, Layers } from 'lucide-react';
 import { profileData } from '../../data/profile';
+import { useTilt } from '../../hooks/useTilt';
 
 interface HeroSectionProps {
-  onExploreProjects: () => void;
-  onExploreLab: () => void;
-  onContact: () => void;
+  onExploreProjects?: () => void;
+  onExploreLab?: () => void;
+  onContact?: () => void;
+  onAboutMe?: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   onExploreProjects,
   onExploreLab,
   onContact,
+  onAboutMe,
 }) => {
+  const aboutMeBtnRef = useTilt<HTMLButtonElement>({
+    maxTilt: 6,
+    scale: 1.05,
+    perspective: 800,
+    magnetic: true,
+    magneticForce: 0.2,
+  });
+
+  const handleScrollTo = (id: string, cb?: () => void) => {
+    if (cb) {
+      cb();
+      return;
+    }
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <section className="relative py-12 sm:py-20 px-4 sm:px-6 max-w-7xl mx-auto">
+    <section id="hero" className="relative py-12 sm:py-20 px-4 sm:px-6 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-center">
         {/* Left Column: Identity & Positioning */}
         <div className="lg:col-span-7 space-y-6">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-xs font-mono text-indigo-700 shadow-sm font-semibold">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
-            <span>AI/ML ENGINEER & DATA SCIENTIST • BHOPAL, INDIA</span>
+            <span>AI/ML ENGINEER &amp; DATA SCIENTIST • BHOPAL, INDIA</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-display font-extrabold text-slate-900 tracking-tight leading-tight">
@@ -56,28 +78,38 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* Action CTAs */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
+            {/* Primary Call to Action: ABOUT ME (NEW with attractive cyan/blue gradient & glow) */}
             <button
-              onClick={onExploreProjects}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-mono text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105 transition-all flex items-center space-x-2"
+              ref={aboutMeBtnRef}
+              onClick={() => handleScrollTo('about', onAboutMe)}
+              className="px-7 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:via-sky-400 hover:to-blue-500 text-white font-mono text-xs sm:text-sm font-bold shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 transition-all flex items-center space-x-2 cursor-pointer"
+              aria-label="About Me - Learn more about Nagendra Kushwaha"
             >
-              <span>Explore Projects</span>
-              <ArrowRight className="w-4 h-4" />
+              <User className="w-4 h-4 text-cyan-100" />
+              <span>ABOUT ME</span>
+              <ArrowRight className="w-4 h-4 text-cyan-100" />
+            </button>
+
+            {/* Preserved View Full Portfolio / Explore Projects */}
+            <button
+              onClick={() => handleScrollTo('projects', onExploreProjects)}
+              className="px-6 py-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-mono text-xs sm:text-sm font-semibold shadow-sm hover:scale-105 transition-all flex items-center space-x-2 cursor-pointer"
+            >
+              <Layers className="w-4 h-4 text-indigo-600" />
+              <span>View Full Portfolio</span>
             </button>
 
             <button
-              onClick={onExploreLab}
-              className="px-6 py-3 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-mono text-xs sm:text-sm font-semibold shadow-sm hover:scale-105 transition-all flex items-center space-x-2"
+              onClick={() => handleScrollTo('mllab', onExploreLab)}
+              className="px-6 py-3 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-mono text-xs sm:text-sm font-semibold shadow-sm hover:scale-105 transition-all flex items-center space-x-2 cursor-pointer"
             >
               <FlaskConical className="w-4 h-4 text-emerald-600" />
               <span>Interactive ML Lab</span>
             </button>
 
             <button
-              onClick={() => {
-                const el = document.getElementById('skills');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-5 py-3 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 font-mono text-xs sm:text-sm font-semibold shadow-sm hover:scale-105 transition-all flex items-center space-x-2"
+              onClick={() => handleScrollTo('skills')}
+              className="px-5 py-3 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 font-mono text-xs sm:text-sm font-semibold shadow-sm hover:scale-105 transition-all flex items-center space-x-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-indigo-600" />
               <span>57 Technical Skills</span>
@@ -100,8 +132,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             ))}
 
             <button
-              onClick={onContact}
-              className="px-5 py-3 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 font-mono text-xs sm:text-sm font-medium shadow-sm transition-all"
+              onClick={() => handleScrollTo('contact', onContact)}
+              className="px-5 py-3 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 font-mono text-xs sm:text-sm font-medium shadow-sm transition-all cursor-pointer"
             >
               Get in Touch
             </button>
@@ -112,7 +144,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="lg:col-span-5 flex justify-center">
           <div className="relative group w-72 sm:w-84">
             {/* Ambient Radial Glow */}
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-blue-400/25 via-indigo-400/20 to-purple-400/25 blur-2xl opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-blue-400/25 via-indigo-400/20 to-purple-400/25 blur-2xl opacity-80 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             
             <div className="relative rounded-3xl bg-white/95 border border-slate-200/90 p-4 sm:p-5 overflow-hidden shadow-2xl backdrop-blur-xl">
               {/* Profile Image */}

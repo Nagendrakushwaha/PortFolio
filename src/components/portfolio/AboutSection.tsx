@@ -8,7 +8,7 @@ export const AboutSection: React.FC = () => {
       <div className="space-y-4 text-center max-w-3xl mx-auto mb-12">
         <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-mono text-blue-700 shadow-sm font-semibold">
           <User className="w-3.5 h-3.5" />
-          <span>ABOUT & ACADEMIC FOUNDATION</span>
+          <span>ABOUT &amp; ACADEMIC FOUNDATION</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-slate-900">
           Architecting Intelligence with Mathematical Rigor
@@ -117,7 +117,7 @@ export const AboutSection: React.FC = () => {
                 $ whoami
               </p>
               <p className="text-slate-200">
-                Nagendra Kushwaha [AI/ML Engineer & Data Science Specialist]
+                Nagendra Kushwaha [AI/ML Engineer &amp; Data Science Specialist]
               </p>
 
               <p className="text-cyan-400 pt-2">

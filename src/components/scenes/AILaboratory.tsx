@@ -2,9 +2,11 @@ import React from 'react';
 import { HeroSection } from '../portfolio/HeroSection';
 import { AboutSection } from '../portfolio/AboutSection';
 import { SkillsSection } from '../portfolio/SkillsSection';
+import { ProfessionalExperience } from '../portfolio/ProfessionalExperience';
+import { EducationSection } from '../portfolio/EducationSection';
 import { ProjectsGalaxy } from '../portfolio/ProjectsGalaxy';
 import { InteractiveMLLab } from '../portfolio/InteractiveMLLab';
-import { ExperienceEducation } from '../portfolio/ExperienceEducation';
+import { CertificationsSection } from '../portfolio/CertificationsSection';
 import { ContactCosmic } from '../portfolio/ContactCosmic';
 
 interface AILaboratoryProps {
@@ -12,6 +14,7 @@ interface AILaboratoryProps {
   onExploreProjects: () => void;
   onExploreLab: () => void;
   onContact: () => void;
+  onAboutMe?: () => void;
 }
 
 export const AILaboratory: React.FC<AILaboratoryProps> = ({
@@ -19,6 +22,7 @@ export const AILaboratory: React.FC<AILaboratoryProps> = ({
   onExploreProjects,
   onExploreLab,
   onContact,
+  onAboutMe,
 }) => {
   const handleOpenDemo = (_projectSlug: string) => {
     const el = document.getElementById('mllab');
@@ -38,24 +42,38 @@ export const AILaboratory: React.FC<AILaboratoryProps> = ({
         <div className="absolute inset-0 light-holo-grid opacity-75" />
       </div>
 
-      {/* Main Content Flow */}
+      {/* Main Content Flow in requested order */}
       <main className="relative z-10 pt-16">
+        {/* 1. Hero / Introduction */}
         <HeroSection
+          onAboutMe={onAboutMe}
           onExploreProjects={onExploreProjects}
           onExploreLab={onExploreLab}
           onContact={onContact}
         />
 
+        {/* 2. About Me */}
         <AboutSection />
 
+        {/* 3. Technical Skills & Expertise */}
         <SkillsSection />
 
+        {/* 4. Professional Experience */}
+        <ProfessionalExperience />
+
+        {/* 5. Education */}
+        <EducationSection />
+
+        {/* 6. Projects & AI Solutions */}
         <ProjectsGalaxy onOpenDemo={handleOpenDemo} />
 
+        {/* 7. Interactive AI/ML Demonstrations */}
         <InteractiveMLLab />
 
-        <ExperienceEducation />
+        {/* 8. Certifications & Achievements */}
+        <CertificationsSection />
 
+        {/* 9. Contact */}
         <ContactCosmic onReturnToTop={onReturnToTop} />
       </main>
     </div>
