@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nagendra-portfolio": {
+      "command": "node",
+      "args": ["F:/portfolio/server/mcp-server.js"]
+    }
+  }
+}
+

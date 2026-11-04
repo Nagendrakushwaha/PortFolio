@@ -10,6 +10,16 @@ import {
   handleTTS,
   handleChat,
 } from './voice-handlers.js';
+import {
+  handleGetOpenApiSchema,
+  handleGetProfile,
+  handleGetProjects,
+  handleGetProjectBySlug,
+  handleGetSkills,
+  handleGetExperience,
+  handleGetCertifications,
+  handleMcpChat,
+} from './mcp-handlers.js';
 
 const PORT = process.env.PORT || 3001;
 
@@ -62,6 +72,46 @@ const server = http.createServer(async (req, res) => {
       return await handleChat(req, res, body);
     }
 
+    // ==========================================
+    // MCP & ChatGPT Plugin Endpoints
+    // ==========================================
+    if (url.pathname === '/api/mcp/openapi.json' || url.pathname === '/openapi.json') {
+      return handleGetOpenApiSchema(req, res);
+    }
+
+    if (url.pathname === '/api/mcp/profile') {
+      return handleGetProfile(req, res);
+    }
+
+    if (url.pathname === '/api/mcp/projects') {
+      const query = Object.fromEntries(url.searchParams.entries());
+      return handleGetProjects(req, res, query);
+    }
+
+    if (url.pathname.startsWith('/api/mcp/projects/')) {
+      const slug = url.pathname.replace('/api/mcp/projects/', '');
+      return handleGetProjectBySlug(req, res, slug);
+    }
+
+    if (url.pathname === '/api/mcp/skills') {
+      const query = Object.fromEntries(url.searchParams.entries());
+      return handleGetSkills(req, res, query);
+    }
+
+    if (url.pathname === '/api/mcp/experience') {
+      const query = Object.fromEntries(url.searchParams.entries());
+      return handleGetExperience(req, res, query);
+    }
+
+    if (url.pathname === '/api/mcp/certifications') {
+      return handleGetCertifications(req, res);
+    }
+
+    if (url.pathname === '/api/mcp/chat' && req.method === 'POST') {
+      const body = await parseJsonBody(req);
+      return await handleMcpChat(req, res, body);
+    }
+
     // 404
     res.statusCode = 404;
     res.setHeader('Content-Type', 'application/json');
@@ -76,6 +126,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`[Mr. Kennedy Voice Server] Running at http://localhost:${PORT}`);
+  console.log(`[ChatGPT Plugin / OpenAPI Schema]: http://localhost:${PORT}/api/mcp/openapi.json`);
   console.log(`[Voice Config] OpenAI Key: ${process.env.OPENAI_API_KEY ? 'Configured (sk-...)' : 'Not set (Browser fallback active)'}`);
   console.log(`[Voice Config] ElevenLabs Key: ${process.env.ELEVENLABS_API_KEY ? 'Configured' : 'Not set'}`);
 });
