@@ -1,4 +1,5 @@
 # 🌌 Nagendra Kushwaha Portfolio — MCP & ChatGPT Plugin Server
+# 🌌 Nagendra Kushwaha Portfolio — MCP & ChatGPT Plugin Server
 
 This server turns your portfolio into an **AI-queryable tool and context engine**. It exposes your verified profile, 12 production-grade AI/ML projects, 57 technical skills, academic credentials (B.Tech at Sam Global University, CGPA 7.85/10), work experience (UptoSkill, BCG Forage), and the grounded "Mr. Kennedy" voice companion.
 
