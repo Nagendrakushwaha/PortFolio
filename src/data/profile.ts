@@ -42,8 +42,8 @@ export const profileData: ProfileData = {
     "Speech Acoustic Modeling",
     "Data Science & Predictive Analytics"
   ],
-  objective: "Final-year Computer Science Engineering student specializing in Machine Learning, Deep Learning, and NLP with hands-on experience building end-to-end AI/ML systems in Python. Proven track record across speech acoustic classification, grounded RAG conversational systems, explainable medical computer vision, and time-series forecasting using PyTorch, Scikit-learn, and FastAPI/Streamlit with rigorous model evaluation and deployment.",
-  bioSummary: "Specializing in Machine Learning, Deep Learning, and NLP at Sam Global University (2023–2027, CGPA: 7.85/10). Passionate about turning complex high-dimensional datasets into robust, deployable intelligence — from sub-60ms CPU medical image inference to grounded RAG conversational assistants and multi-million flow cybersecurity anomaly detection.",
+  objective: "I specialize in developing end-to-end AI applications, predictive models, and data-driven solutions using Python, PyTorch, Scikit-learn, and FastAPI. I enjoy turning complex data into meaningful insights and transforming innovative ideas into practical, scalable applications.",
+  bioSummary: "I'm an AI/ML Engineer and aspiring Data Scientist passionate about building intelligent systems that solve real-world problems. My expertise spans Machine Learning, Deep Learning, Natural Language Processing, and Generative AI.",
   contact: {
     email: "shibbuk707@gmail.com",
     phone: "+91 8817036391",

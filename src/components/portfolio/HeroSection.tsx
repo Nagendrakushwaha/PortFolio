@@ -45,17 +45,33 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <span>AI/ML ENGINEER &amp; DATA SCIENTIST • BHOPAL, INDIA</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-display font-extrabold text-slate-900 tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-[3.25rem] font-display font-extrabold text-slate-900 tracking-tight leading-[1.18]">
             Engineering{' '}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 font-extrabold">
-              Intelligent Systems
+              Intelligent Systems.
             </span>{' '}
-            Across Complex Data Dimensions.
+            Creating Real-World Impact.
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
-            {profileData.objective}
-          </p>
+          {/* Professional Introduction with visual emphasis on name & clear typography hierarchy */}
+          <div className="space-y-3 pt-1">
+            <p className="text-base sm:text-lg font-display font-bold text-slate-900 tracking-tight">
+              Hi, I&apos;m{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 font-extrabold">
+                Nagendra Kushwaha
+              </span>
+              .
+            </p>
+
+            <div className="space-y-2.5 text-sm sm:text-[15px] text-slate-600 font-normal leading-relaxed">
+              <p>
+                I&apos;m an AI/ML Engineer and aspiring Data Scientist passionate about building intelligent systems that solve real-world problems. My expertise spans Machine Learning, Deep Learning, Natural Language Processing, and Generative AI.
+              </p>
+              <p>
+                I specialize in developing end-to-end AI applications, predictive models, and data-driven solutions using Python, PyTorch, Scikit-learn, and FastAPI. I enjoy turning complex data into meaningful insights and transforming innovative ideas into practical, scalable applications.
+              </p>
+            </div>
+          </div>
 
           {/* Academic & CGPA Verification Badge */}
           <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-md shadow-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
