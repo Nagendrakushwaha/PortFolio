@@ -5,6 +5,7 @@ import { Starfield } from './Starfield';
 import { GalaxySpiral } from './GalaxySpiral';
 import { WormholeTunnel } from './WormholeTunnel';
 import { CelestialWorlds } from './CelestialWorlds';
+import { HolographicEarth } from './HolographicEarth';
 import type { SceneType, MultiverseWorldId } from '../../types/portfolio';
 
 interface CosmicCanvasProps {
@@ -13,6 +14,7 @@ interface CosmicCanvasProps {
   hoveredWorld: MultiverseWorldId | null;
   onSelectWorld: (worldId: MultiverseWorldId) => void;
   onHoverWorld: (worldId: MultiverseWorldId | null) => void;
+  onEnterGalaxy?: () => void;
   reducedMotion?: boolean;
 }
 
@@ -22,6 +24,7 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
   hoveredWorld,
   onSelectWorld,
   onHoverWorld,
+  onEnterGalaxy,
   reducedMotion = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -34,6 +37,13 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
   const galaxyRef = useRef<GalaxySpiral | null>(null);
   const wormholeRef = useRef<WormholeTunnel | null>(null);
   const worldsRef = useRef<CelestialWorlds | null>(null);
+  const earthRef = useRef<HolographicEarth | null>(null);
+
+  // Fresh prop refs for event handlers
+  const activeSceneRef = useRef(activeScene);
+  activeSceneRef.current = activeScene;
+  const onEnterGalaxyRef = useRef(onEnterGalaxy);
+  onEnterGalaxyRef.current = onEnterGalaxy;
 
   // Interaction tracking
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2(0, 0));
@@ -103,23 +113,73 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
     scene.add(worlds.group);
     worldsRef.current = worlds;
 
-    // Mouse move listener
-    const handleMouseMove = (e: MouseEvent) => {
+    const earth = new HolographicEarth();
+    scene.add(earth.group);
+    earthRef.current = earth;
+
+    // Pointer event listeners for 3D Earth dragging / roaming & planet selection
+    let isDragging = false;
+    let dragDistance = 0;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (activeSceneRef.current === 'awakening' && earthRef.current) {
+        isDragging = true;
+        dragDistance = 0;
+        earthRef.current.onPointerDown(e.clientX, e.clientY);
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
       targetMouseRef.current.set(x, y);
 
+      // 3D Earth interaction during awakening
+      if (activeSceneRef.current === 'awakening' && earthRef.current) {
+        if (isDragging) {
+          dragDistance += Math.hypot(e.movementX, e.movementY);
+          earthRef.current.onPointerMove(e.clientX, e.clientY);
+          container.style.cursor = 'grabbing';
+        } else if (cameraRef.current) {
+          raycasterRef.current.setFromCamera(targetMouseRef.current, cameraRef.current);
+          const isHit = earthRef.current.hitTest(raycasterRef.current);
+          earthRef.current.setHovered(isHit);
+          container.style.cursor = isHit ? 'grab' : 'default';
+        }
+      }
+
       // Raycast test for planets if multiverse is active
-      if (worldsRef.current && cameraRef.current) {
+      if (activeSceneRef.current === 'multiverse' && worldsRef.current && cameraRef.current) {
         raycasterRef.current.setFromCamera(targetMouseRef.current, cameraRef.current);
         const hitId = worldsRef.current.hitTest(raycasterRef.current);
         onHoverWorld(hitId);
       }
     };
 
+    const handlePointerUp = (e: PointerEvent) => {
+      if (activeSceneRef.current === 'awakening' && earthRef.current) {
+        if (isDragging) {
+          earthRef.current.onPointerUp();
+          isDragging = false;
+          container.style.cursor = 'default';
+
+          // Click detection without significant drag: enter profile
+          if (dragDistance < 8 && cameraRef.current && onEnterGalaxyRef.current) {
+            const rect = container.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+            raycasterRef.current.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
+            if (earthRef.current.hitTest(raycasterRef.current)) {
+              onEnterGalaxyRef.current();
+            }
+          }
+        }
+      }
+    };
+
     const handleClick = () => {
-      if (worldsRef.current && cameraRef.current) {
+      if (activeSceneRef.current === 'multiverse' && worldsRef.current && cameraRef.current) {
         raycasterRef.current.setFromCamera(targetMouseRef.current, cameraRef.current);
         const hitId = worldsRef.current.hitTest(raycasterRef.current);
         if (hitId) {
@@ -128,7 +188,9 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
       }
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
     container.addEventListener('click', handleClick);
 
     // Resize listener
@@ -184,6 +246,11 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
         worldsRef.current.update(delta);
       }
 
+      // 3D Holographic Earth update (Earth roams & rotates in space)
+      if (earthRef.current && activeSceneRef.current === 'awakening') {
+        earthRef.current.update(delta);
+      }
+
       // Subtle mouse camera parallax (unless reduced motion is active)
       if (cameraRef.current && !reducedMotion) {
         cameraRef.current.rotation.y = -mouseRef.current.x * 0.035;
@@ -199,7 +266,9 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('click', handleClick);
       window.removeEventListener('resize', handleResize);
 
@@ -207,6 +276,7 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
       galaxy.dispose();
       wormhole.dispose();
       worlds.dispose();
+      earth.dispose();
       renderer.dispose();
       if (container && renderer.domElement) {
         container.removeChild(renderer.domElement);
@@ -227,22 +297,25 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
     const wormhole = wormholeRef.current;
     const worlds = worldsRef.current;
     const galaxy = galaxyRef.current;
+    const earth = earthRef.current;
     if (!camera || !wormhole || !worlds || !galaxy) return;
 
     if (activeScene === 'awakening') {
       wormhole.setActive(false);
       worlds.setActive(false);
-      galaxy.setOpacity(0.60);
+      if (earth) earth.setVisible(true);
+      galaxy.setOpacity(0.55); // Keeping galaxy visible with the 3D Earth!
 
       gsap.to(speedMultiplierRef, { current: 0.7, duration: 1.5 });
       gsap.to(camera.position, {
         x: 0,
         y: 0,
-        z: 16.5,
+        z: 14.2,
         duration: reducedMotion ? 0.1 : 2.0,
         ease: 'power2.out',
       });
     } else if (activeScene === 'wormhole') {
+      if (earth) earth.setVisible(false);
       wormhole.setActive(true);
       worlds.setActive(false);
       galaxy.setOpacity(0.2);
@@ -257,6 +330,7 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
         ease: 'power2.inOut',
       });
     } else if (activeScene === 'multiverse') {
+      if (earth) earth.setVisible(false);
       wormhole.setActive(false);
       worlds.setActive(true);
       galaxy.setOpacity(0.4);
@@ -285,6 +359,7 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
         });
       }
     } else if (activeScene === 'laboratory') {
+      if (earth) earth.setVisible(false);
       wormhole.setActive(false);
       worlds.setActive(false);
       galaxy.setOpacity(0.22);
@@ -304,7 +379,7 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
     <div
       ref={containerRef}
       className={`fixed inset-0 w-full h-full z-0 overflow-hidden ${
-        activeScene === 'multiverse' ? 'pointer-events-auto' : 'pointer-events-none'
+        activeScene === 'multiverse' || activeScene === 'awakening' ? 'pointer-events-auto' : 'pointer-events-none'
       }`}
       style={{ touchAction: 'none' }}
     />

@@ -118,6 +118,7 @@ const PortfolioContent: React.FC<{
           hoveredWorld={hoveredWorld}
           onSelectWorld={handleSelectWorld}
           onHoverWorld={setHoveredWorld}
+          onEnterGalaxy={handleEnterGalaxy}
           reducedMotion={prefersReducedMotion}
         />
       ) : (
