@@ -47,7 +47,7 @@ export const ProfessionalExperience: React.FC = () => {
                         : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                     }`}>
                       {item.type === 'corporate' || item.type === 'full_time'
-                        ? 'Corporate Experience'
+                        ? 'Professional Work Experience'
                         : item.type === 'internship'
                         ? 'Industry Internship'
                         : item.type === 'mentorship'
@@ -93,16 +93,21 @@ export const ProfessionalExperience: React.FC = () => {
                 ))}
               </ul>
 
-              {/* Skills Tags */}
-              <div className="pt-2 flex flex-wrap gap-1.5">
-                {item.skillsUsed.map((skill, sIdx) => (
-                  <span
-                    key={sIdx}
-                    className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200 font-medium hover:border-indigo-300 hover:text-indigo-700 transition-colors"
-                  >
-                    {skill}
-                  </span>
-                ))}
+              {/* Core Competencies Tags */}
+              <div className="pt-2 space-y-1.5">
+                <span className="block text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">
+                  Core Competencies
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {item.skillsUsed.map((skill, sIdx) => (
+                    <span
+                      key={sIdx}
+                      className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200 font-medium hover:border-indigo-300 hover:text-indigo-700 transition-colors"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
