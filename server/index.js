@@ -9,6 +9,9 @@ import {
   handleRealtimeSession,
   handleTTS,
   handleChat,
+  handleKnowledgeUpload,
+  handleKnowledgeList,
+  handleKnowledgeDelete,
 } from './voice-handlers.js';
 import {
   handleGetOpenApiSchema,
@@ -70,6 +73,23 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/chat' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       return await handleChat(req, res, body);
+    }
+
+    // ==========================================
+    // Knowledge Management Endpoints (Admin Protected)
+    // ==========================================
+    if (url.pathname === '/api/knowledge/upload' && req.method === 'POST') {
+      const body = await parseJsonBody(req);
+      return await handleKnowledgeUpload(req, res, body);
+    }
+
+    if (url.pathname === '/api/knowledge/documents' && req.method === 'GET') {
+      return await handleKnowledgeList(req, res);
+    }
+
+    if (url.pathname.startsWith('/api/knowledge/documents/') && req.method === 'DELETE') {
+      const docId = url.pathname.replace('/api/knowledge/documents/', '');
+      return await handleKnowledgeDelete(req, res, docId);
     }
 
     // ==========================================

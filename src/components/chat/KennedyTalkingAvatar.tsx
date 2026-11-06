@@ -3,11 +3,13 @@ import { Mic, AlertTriangle, VolumeX } from 'lucide-react';
 
 export type AssistantState =
   | 'idle'
+  | 'available'
   | 'ready'
   | 'listening'
   | 'processing'
   | 'speaking'
   | 'muted'
+  | 'disconnected'
   | 'error';
 
 export type VisemeType = 'rest' | 'aa' | 'ee' | 'oh' | 'oo' | 'mm';
@@ -496,6 +498,8 @@ export const KennedyTalkingAvatar: React.FC<KennedyTalkingAvatarProps> = ({
               ? 'bg-amber-500 text-slate-950'
               : effectiveState === 'error'
               ? 'bg-rose-600 text-white'
+              : effectiveState === 'disconnected'
+              ? 'bg-slate-600 text-slate-300'
               : 'bg-emerald-400 text-slate-950'
           }`}
           style={{

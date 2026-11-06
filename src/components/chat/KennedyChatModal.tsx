@@ -4,12 +4,10 @@ import {
   Minus,
   Maximize2,
   Volume2,
-  VolumeX,
   Mic,
   MicOff,
   PhoneOff,
   Send,
-  Trash2,
   Copy,
   Check,
   Sliders,
@@ -17,12 +15,19 @@ import {
   ArrowRight,
   ExternalLink,
   AlertCircle,
-  Radio,
   RotateCw,
+  Database,
+  Lock,
+  Upload,
+  Trash,
+  CheckCircle2,
+  Square,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-react';
 import { KennedyTalkingAvatar } from './KennedyTalkingAvatar';
-import { KennedyAudioWaveform } from './KennedyAudioWaveform';
 import { useKennedyVoiceAssistant } from '../../hooks/useKennedyVoiceAssistant';
+import { voiceService } from '../../lib/voiceService';
 import type { ChatAction } from '../../lib/kennedyKnowledgeEngine';
 
 export interface KennedyChatModalProps {
@@ -35,14 +40,14 @@ export interface KennedyChatModalProps {
 
 const INITIAL_SUGGESTIONS = [
   'Who is Nagendra Kushwaha?',
-  'What projects has he developed?',
+  'What is his professional experience at Tex Web Solutions?',
   'Explain the Customer Support AI project.',
-  'What are his strongest skills?',
-  'What is his experience with data analytics?',
-  'Show me his GitHub projects.',
-  'Explain his speech emotion detection system.',
+  'What are his academic qualifications at Sam Global University?',
+  'Explain his speech emotion recognition system.',
+  'What technologies does he specialize in?',
   'Why can accuracy be misleading in fraud detection?',
-  'Can I hire him for an AI project?',
+  'What makes him suitable for an AI/ML Engineer role?',
+  'How can I get in touch with Nagendra?',
 ];
 
 export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
@@ -60,6 +65,21 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [showKnowledgeAdmin, setShowKnowledgeAdmin] = useState<boolean>(false);
+  
+  // Knowledge Management State
+  const [adminKey, setAdminKey] = useState<string>(() => {
+    return sessionStorage.getItem('kennedy_admin_key') || '';
+  });
+  const [knowledgeStats, setKnowledgeStats] = useState<any>(null);
+  const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
+  const [knowledgeSuccess, setKnowledgeSuccess] = useState<string | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
+  const [uploadCategory, setUploadCategory] = useState<string>('projects');
+  const [uploadTitle, setUploadTitle] = useState<string>('');
+  const [textSnippet, setTextSnippet] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const isMinimized = voice.isChatMinimized;
   const setIsMinimized = voice.setIsChatMinimized;
 
@@ -79,6 +99,28 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
       }
     }
   }, [isOpen, isMinimized, voice.messages, scrollToBottom]);
+
+  // Load Knowledge Stats when Admin Panel Opens
+  const refreshKnowledgeStats = useCallback(async () => {
+    if (!adminKey) return;
+    try {
+      const stats = await voiceService.listKnowledge(adminKey);
+      if (stats.error) {
+        setKnowledgeError(stats.error);
+      } else {
+        setKnowledgeStats(stats);
+        setKnowledgeError(null);
+      }
+    } catch (err: any) {
+      setKnowledgeError(err.message || 'Error fetching knowledge stats');
+    }
+  }, [adminKey]);
+
+  useEffect(() => {
+    if (showKnowledgeAdmin && adminKey) {
+      refreshKnowledgeStats();
+    }
+  }, [showKnowledgeAdmin, adminKey, refreshKnowledgeStats]);
 
   // Handle Action Trigger from message
   const handleActionClick = (action: ChatAction) => {
@@ -111,6 +153,91 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Handle Admin Key Save
+  const handleSaveAdminKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    sessionStorage.setItem('kennedy_admin_key', adminKey);
+    refreshKnowledgeStats();
+  };
+
+  // Handle File Upload for Ingestion
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !adminKey) return;
+
+    setIsUploadingDoc(true);
+    setKnowledgeError(null);
+    setKnowledgeSuccess(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const res = await voiceService.uploadKnowledge({
+          filename: file.name,
+          fileBase64: base64,
+          category: uploadCategory,
+          title: uploadTitle.trim() || file.name,
+          adminKey,
+        });
+
+        setIsUploadingDoc(false);
+        if (res.error) {
+          setKnowledgeError(res.error);
+        } else if (res.status === 'duplicate') {
+          setKnowledgeSuccess(`Duplicate detected: ${res.message}`);
+        } else {
+          setKnowledgeSuccess(`Successfully indexed "${file.name}" into verified knowledge base! (${res.chunksCreated || 1} chunks)`);
+          setUploadTitle('');
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          refreshKnowledgeStats();
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setIsUploadingDoc(false);
+      setKnowledgeError(err.message || 'File processing failed');
+    }
+  };
+
+  // Handle Text Snippet Ingestion
+  const handleTextSnippetUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!textSnippet.trim() || !uploadTitle.trim() || !adminKey) return;
+
+    setIsUploadingDoc(true);
+    setKnowledgeError(null);
+    setKnowledgeSuccess(null);
+
+    const res = await voiceService.uploadKnowledge({
+      title: uploadTitle.trim(),
+      textContent: textSnippet.trim(),
+      category: uploadCategory,
+      adminKey,
+    });
+
+    setIsUploadingDoc(false);
+    if (res.error) {
+      setKnowledgeError(res.error);
+    } else {
+      setKnowledgeSuccess(`Added structured knowledge entry: "${uploadTitle}"`);
+      setTextSnippet('');
+      setUploadTitle('');
+      refreshKnowledgeStats();
+    }
+  };
+
+  // Handle Delete Knowledge Document
+  const handleDeleteDoc = async (docId: string) => {
+    if (!window.confirm('Are you sure you want to remove this document from the knowledge base?')) return;
+    const ok = await voiceService.deleteKnowledge(docId, adminKey);
+    if (ok) {
+      refreshKnowledgeStats();
+    } else {
+      setKnowledgeError('Failed to delete document');
+    }
   };
 
   // Simple Markdown Formatter for Assistant Replies
@@ -154,7 +281,7 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
       className={`fixed z-50 transition-all duration-300 ${
         isMinimized
           ? 'bottom-6 right-6 w-80 h-16'
-          : 'inset-x-3 bottom-3 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[480px] md:w-[520px] h-[640px] max-h-[92vh]'
+          : 'inset-x-3 bottom-3 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[500px] md:w-[540px] h-[670px] max-h-[92vh]'
       }`}
     >
       {/* Main Glassmorphic Panel Container */}
@@ -197,12 +324,12 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                         : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     }`}
                   >
-                    {voice.isVoiceSessionActive ? 'VOICE LIVE' : voice.isNeuralVoiceActive ? 'NEURAL AI VOICE' : 'AI VOICE'}
+                    {voice.isVoiceSessionActive ? 'VOICE LIVE' : voice.isNeuralVoiceActive ? 'OPENAI REALTIME' : 'AI DIGITAL TWIN'}
                   </span>
                 </h3>
               </div>
               <p className="text-[11px] font-mono text-slate-400">
-                Nagendra's Persistent AI Companion
+                Nagendra's AI Digital Twin &amp; Companion
               </p>
             </div>
           </div>
@@ -253,163 +380,256 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
               </button>
             )}
 
-            {/* Toggle Spoken Speech Audio Output Mute */}
+            {/* Knowledge Management Admin Button */}
             <button
-              onClick={voice.toggleVoiceOutput}
+              onClick={() => {
+                setShowKnowledgeAdmin((prev) => !prev);
+                setShowSettings(false);
+              }}
               className={`p-1.5 rounded-lg border transition-all ${
-                voice.isVoiceOutputEnabled
-                  ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                showKnowledgeAdmin
+                  ? 'bg-indigo-600 border-indigo-400 text-white shadow-sm'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-indigo-400'
               }`}
-              title={voice.isVoiceOutputEnabled ? 'Mute Assistant Audio' : 'Unmute Assistant Audio'}
+              title="Knowledge Base & Document Management (Admin)"
+              aria-label="Knowledge Base"
             >
-              {voice.isVoiceOutputEnabled ? (
-                <Volume2 className="w-3.5 h-3.5" />
-              ) : (
-                <VolumeX className="w-3.5 h-3.5" />
-              )}
+              <Database className="w-3.5 h-3.5 text-indigo-400" />
             </button>
 
-            {/* Voice Settings */}
+            {/* Voice Audio Settings Toggle */}
             <button
-              onClick={() => setShowSettings((prev) => !prev)}
+              onClick={() => {
+                setShowSettings((prev) => !prev);
+                setShowKnowledgeAdmin(false);
+              }}
               className={`p-1.5 rounded-lg border transition-all ${
                 showSettings
-                  ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                  ? 'bg-cyan-600 border-cyan-400 text-white shadow-sm'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
               }`}
-              title="Voice & Speech Settings"
+              title="Voice & Audio Settings"
+              aria-label="Voice Settings"
             >
               <Sliders className="w-3.5 h-3.5" />
             </button>
 
-            {/* Clear Chat */}
-            <button
-              onClick={voice.clearChat}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
-              title="Clear Conversation History"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Minimize / Maximize Window */}
+            {/* Minimize / Maximize */}
             <button
               onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all"
-              title={isMinimized ? 'Expand Chat Panel' : 'Minimize Chat Panel'}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all"
+              title={isMinimized ? 'Expand Mr. Kennedy' : 'Minimize'}
+              aria-label={isMinimized ? 'Expand' : 'Minimize'}
             >
               {isMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
             </button>
 
-            {/* Close / Hide Window */}
+            {/* Close */}
             <button
               onClick={handleClose}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/80 hover:text-rose-300 border border-slate-700 hover:border-rose-700 text-slate-400 transition-all"
-              title="Hide Chat Panel (Voice continues in background if active)"
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/80 hover:border-rose-600 border border-slate-700 text-slate-400 hover:text-rose-300 transition-all"
+              title="Close panel (Voice session will remain active)"
+              aria-label="Close"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </header>
 
-        {/* If minimized, hide body */}
+        {/* ==================================================== */}
+        {/* EXPANDABLE BODY CONTENT */}
+        {/* ==================================================== */}
         {!isMinimized && (
           <>
-            {/* Active Voice Session Status Notice Banner */}
-            {voice.isVoiceSessionActive && (
-              <div className="px-4 py-1.5 bg-gradient-to-r from-cyan-950/80 via-slate-900 to-indigo-950/80 border-b border-cyan-500/30 text-[11px] font-mono text-cyan-200 flex items-center justify-between">
-                <span className="flex items-center space-x-1.5">
-                  <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                  <span>
-                    {voice.isListening
-                      ? 'Listening to your speech... Speak freely or type'
-                      : voice.isProcessing
-                      ? 'Processing question...'
-                      : voice.isSpeaking
-                      ? 'Speaking response aloud...'
-                      : 'Voice Session Active'}
+            {/* 1. Knowledge Base Admin Management Panel */}
+            {showKnowledgeAdmin && (
+              <div className="p-4 bg-slate-900/98 border-b border-indigo-500/40 text-xs font-mono max-h-[380px] overflow-y-auto space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <span className="font-bold text-indigo-300 flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                    <span>Personal Knowledge System (Admin Workflow)</span>
                   </span>
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  {voice.isMicMuted ? 'Muted' : 'Mic Live'}
-                </span>
+                  <button
+                    onClick={() => setShowKnowledgeAdmin(false)}
+                    className="text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Admin Key Input */}
+                <form onSubmit={handleSaveAdminKey} className="flex items-center space-x-2">
+                  <div className="relative flex-1">
+                    <Lock className="w-3 h-3 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="password"
+                      value={adminKey}
+                      onChange={(e) => setAdminKey(e.target.value)}
+                      placeholder="Enter ADMIN_API_KEY to unlock upload & edit"
+                      className="w-full pl-8 pr-3 py-1.5 rounded bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-400"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all"
+                  >
+                    Authenticate
+                  </button>
+                </form>
+
+                {knowledgeError && (
+                  <div className="p-2 rounded bg-rose-950/80 border border-rose-500/50 text-rose-300 text-[11px] flex items-center space-x-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{knowledgeError}</span>
+                  </div>
+                )}
+
+                {knowledgeSuccess && (
+                  <div className="p-2 rounded bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] flex items-center space-x-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>{knowledgeSuccess}</span>
+                  </div>
+                )}
+
+                {/* Upload Form */}
+                <div className="space-y-2 pt-1 border-t border-white/10">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      placeholder="Document title / subject (e.g. 2026 Resume or Instacart Paper)"
+                      className="flex-1 px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-400"
+                    />
+                    <select
+                      value={uploadCategory}
+                      onChange={(e) => setUploadCategory(e.target.value)}
+                      className="px-2 py-1.5 rounded bg-slate-950 border border-slate-700 text-white text-xs"
+                    >
+                      <option value="resume">Resume</option>
+                      <option value="projects">Projects</option>
+                      <option value="experience">Experience</option>
+                      <option value="skills">Skills</option>
+                      <option value="education">Education</option>
+                      <option value="general">General</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <label className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border border-dashed border-indigo-400/50 bg-indigo-950/30 hover:bg-indigo-900/40 text-indigo-300 hover:text-white cursor-pointer transition-all">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">
+                        {isUploadingDoc ? 'Processing file...' : 'Upload PDF / DOCX / TXT / MD / JSON'}
+                      </span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.docx,.txt,.md,.json"
+                        onChange={handleFileUpload}
+                        disabled={isUploadingDoc || !adminKey}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Or Structured Text Input */}
+                  <div className="pt-1">
+                    <textarea
+                      value={textSnippet}
+                      onChange={(e) => setTextSnippet(e.target.value)}
+                      rows={2}
+                      placeholder="Or paste direct Markdown/JSON text to index immediately..."
+                      className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-white text-xs font-mono focus:outline-none focus:border-indigo-400"
+                    />
+                    <button
+                      onClick={handleTextSnippetUpload}
+                      disabled={isUploadingDoc || !textSnippet.trim() || !uploadTitle.trim() || !adminKey}
+                      className="mt-1 px-3 py-1 rounded bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-semibold disabled:opacity-40 transition-all"
+                    >
+                      Index Text Snippet
+                    </button>
+                  </div>
+                </div>
+
+                {/* Current Indexed Documents List */}
+                {knowledgeStats && (
+                  <div className="space-y-1.5 pt-2 border-t border-white/10">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Total Knowledge Chunks: <strong className="text-cyan-300">{knowledgeStats.totalChunks}</strong> ({knowledgeStats.baseDossierChunks} base dossier)</span>
+                      <button onClick={refreshKnowledgeStats} className="text-cyan-400 hover:text-cyan-200 flex items-center space-x-1">
+                        <RefreshCw className="w-2.5 h-2.5" />
+                        <span>Refresh</span>
+                      </button>
+                    </div>
+
+                    <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
+                      {knowledgeStats.customDocuments?.map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between p-1.5 rounded bg-slate-950 border border-slate-800 text-[10px]">
+                          <div className="truncate flex-1 pr-2">
+                            <span className="text-white font-semibold">{doc.title}</span>
+                            <span className="text-slate-500 ml-1">({doc.category} &bull; {doc.chunkCount} chunks)</span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteDoc(doc.id)}
+                            className="text-rose-400 hover:text-rose-200 p-1"
+                            title="Delete document"
+                          >
+                            <Trash className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {(!knowledgeStats.customDocuments || knowledgeStats.customDocuments.length === 0) && (
+                        <div className="text-[10px] text-slate-500 italic py-1 text-center">
+                          Base verified dossier active. Upload additional documents above to expand Mr. Kennedy's knowledge.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Voice Settings Flyout */}
+            {/* 2. Voice Audio Settings Drawer */}
             {showSettings && (
-              <div className="p-3.5 bg-slate-900 border-b border-white/10 text-xs font-mono space-y-3 z-10 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between text-slate-300 font-bold">
-                  <span className="flex items-center space-x-1.5">
-                    <span>Mr. Kennedy AI Voice Settings</span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
-                        voice.isNeuralVoiceActive
-                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
-                          : 'bg-cyan-950/80 text-cyan-300 border-cyan-500/50'
-                      }`}
-                    >
-                      {voice.isNeuralVoiceActive ? 'Neural Engine Active' : 'Standard Engine'}
-                    </span>
-                  </span>
-                  <span className="text-[10px] text-cyan-400 capitalize">{voice.activeProvider}</span>
+              <div className="p-3 bg-slate-900/98 border-b border-cyan-500/40 text-xs font-mono space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between pb-1 border-b border-white/10">
+                  <span className="font-bold text-cyan-300">Voice &amp; Neural Speech Configuration</span>
+                  <button
+                    onClick={() => setShowSettings(false)}
+                    className="text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] text-slate-400 font-semibold">Voice Model & Accent:</label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        voice.speak("Hello! I am Mr. Kennedy, Nagendra's AI portfolio voice companion. How may I assist you today?");
-                      }}
-                      className="text-[10px] text-cyan-300 hover:text-cyan-100 flex items-center space-x-1 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/40 hover:bg-cyan-900 transition-all"
-                      title="Listen to a voice preview"
-                    >
-                      <Volume2 className="w-2.5 h-2.5" />
-                      <span>Test Voice</span>
-                    </button>
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-400">Assistant Voice Selection:</label>
                   <select
                     value={voice.selectedVoiceId}
-                    onChange={(e) => {
-                      voice.setSelectedVoiceId(e.target.value);
-                    }}
-                    className="w-full px-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 text-xs focus:outline-none focus:border-cyan-500 font-sans"
+                    onChange={(e) => voice.setSelectedVoiceId(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-400"
                   >
-                    {voice.availableVoices.length === 0 ? (
-                      <option value="echo">Echo (Default Neural Male Voice)</option>
-                    ) : (
-                      <>
-                        <optgroup label="✨ Neural Conversational AI Voices (OpenAI & ElevenLabs)">
-                          {voice.availableVoices
-                            .filter((v) => v.isNeural)
-                            .map((v) => (
-                              <option key={v.id} value={v.id}>
-                                {v.displayName}
-                              </option>
-                            ))}
-                        </optgroup>
-                        <optgroup label="🌐 Local Browser Voices (Offline Fallback)">
-                          {voice.availableVoices
-                            .filter((v) => !v.isNeural)
-                            .map((v) => (
-                              <option key={v.id} value={v.id}>
-                                {v.displayName}
-                              </option>
-                            ))}
-                        </optgroup>
-                      </>
-                    )}
+                    <optgroup label="✨ OpenAI Natural Female Voices (Recommended)">
+                      <option value="shimmer">Shimmer (Expressive, Natural Female — Default)</option>
+                      <option value="nova">Nova (Warm, Conversational Female)</option>
+                      <option value="coral">Coral (Articulate, Contemporary Female)</option>
+                    </optgroup>
+                    <optgroup label="OpenAI Male &amp; Neutral Voices">
+                      <option value="echo">Echo (Warm, Articulate Male)</option>
+                      <option value="ash">Ash (Clear Contemporary Male)</option>
+                      <option value="onyx">Onyx (Deep Authoritative Male)</option>
+                      <option value="alloy">Alloy (Balanced Neutral)</option>
+                    </optgroup>
+                    <optgroup label="ElevenLabs Voices">
+                      <option value="21m00Tcm4TlvDq8ikWAM">Rachel (ElevenLabs Natural Female)</option>
+                      <option value="JBFqnCBsd6RMkjVDRZzb">George (ElevenLabs Warm British Male)</option>
+                    </optgroup>
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Conversational Speed</span>
-                      <span className="text-cyan-300">{voice.speechRate.toFixed(1)}x</span>
-                    </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400">Speech Pace ({voice.speechRate}x):</label>
                     <input
                       type="range"
                       min="0.8"
@@ -417,136 +637,141 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                       step="0.05"
                       value={voice.speechRate}
                       onChange={(e) => voice.setSpeechRate(parseFloat(e.target.value))}
-                      className="w-full accent-cyan-500 h-1 bg-slate-800 rounded cursor-pointer"
+                      className="w-full accent-cyan-400"
                     />
                   </div>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Vocal Pitch</span>
-                      <span className="text-cyan-300">{voice.speechPitch.toFixed(2)}</span>
-                    </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400">Voice Pitch ({voice.speechPitch}x):</label>
                     <input
                       type="range"
-                      min="0.85"
+                      min="0.8"
                       max="1.2"
                       step="0.05"
                       value={voice.speechPitch}
                       onChange={(e) => voice.setSpeechPitch(parseFloat(e.target.value))}
-                      className="w-full accent-cyan-500 h-1 bg-slate-800 rounded cursor-pointer"
+                      className="w-full accent-cyan-400"
                     />
                   </div>
-                </div>
-
-                <div className="p-2 rounded bg-slate-950/80 border border-white/5 text-[10px] text-slate-400 leading-relaxed">
-                  <span className="text-cyan-400 font-semibold">Note:</span> High-fidelity natural voice runs on the secure backend via OpenAI / ElevenLabs API. If credentials are not set in <code className="text-cyan-300">.env</code>, Mr. Kennedy automatically utilizes the verified local knowledge engine and standard browser voice.
                 </div>
               </div>
             )}
 
-            {/* Active Audio Waveform Bar */}
-            <div className="px-4 pt-2">
-              <KennedyAudioWaveform
-                isActive={voice.isSpeaking || voice.isListening || voice.isProcessing || voice.isMicMuted}
-                state={voice.assistantState}
-                isSpeaking={voice.isSpeaking}
-                isListening={voice.isListening}
-                isProcessing={voice.isProcessing}
-                isThinking={voice.isProcessing}
-                isMuted={voice.isMicMuted}
-                audioLevel={voice.audioLevel}
-                onStopSpeaking={voice.stopSpeaking}
-                onToggleMute={voice.toggleMicMute}
-                onRetry={voice.retryListening}
-              />
-            </div>
-
-            {/* Speech-To-Text / Audio Input Error Banner with Retry Control */}
-            {voice.sttError && (
-              <div className="mx-4 my-2 p-2.5 rounded-xl bg-rose-950/70 border border-rose-800 text-rose-200 text-xs flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-200">
+            {/* Real-time Audio Waveform Visualizer */}
+            {voice.isSpeaking && (
+              <div className="px-4 py-1.5 bg-cyan-950/40 border-b border-cyan-500/30 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                  <span className="text-[11px] leading-snug">{voice.sttError}</span>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                  <span className="text-[10px] font-mono text-cyan-300 font-semibold tracking-wider uppercase">
+                    Mr. Kennedy Speaking &bull; Live Audio Output
+                  </span>
+                </div>
+                <button
+                  onClick={voice.stopSpeaking}
+                  className="px-2 py-0.5 rounded bg-cyan-900/80 hover:bg-cyan-800 text-cyan-200 text-[10px] font-mono flex items-center space-x-1"
+                >
+                  <Square className="w-2.5 h-2.5 fill-current" />
+                  <span>Interrupt</span>
+                </button>
+              </div>
+            )}
+
+            {/* Error Notification Banner */}
+            {voice.sttError && (
+              <div className="p-2.5 bg-rose-950/80 border-b border-rose-500/50 text-rose-300 text-xs font-mono flex items-center justify-between">
+                <div className="flex items-center space-x-2 truncate pr-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span className="truncate">{voice.sttError}</span>
                 </div>
                 <button
                   onClick={voice.retryListening}
-                  className="px-2.5 py-1 rounded-lg bg-rose-900/90 hover:bg-rose-800 text-rose-100 text-[11px] font-semibold flex items-center space-x-1 shrink-0 transition-all border border-rose-700"
+                  className="px-2 py-1 rounded bg-rose-800 hover:bg-rose-700 text-white font-mono text-[10px] flex items-center space-x-1 shrink-0"
                 >
-                  <RotateCw className="w-3 h-3" />
+                  <RotateCw className="w-2.5 h-2.5" />
                   <span>Retry</span>
                 </button>
               </div>
             )}
 
-            {/* Messages Stream */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 font-sans text-xs scrollbar-thin scrollbar-thumb-slate-800">
+            {/* ==================================================== */}
+            {/* MESSAGES CONVERSATION CONTAINER */}
+            {/* ==================================================== */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 text-xs font-mono">
               {voice.messages.map((msg) => {
                 const isAssistant = msg.sender === 'assistant';
-
                 return (
                   <div
                     key={msg.id}
-                    className={`flex items-start space-x-2.5 ${
-                      isAssistant ? 'justify-start' : 'justify-end'
-                    }`}
+                    className={`flex flex-col ${isAssistant ? 'items-start' : 'items-end'}`}
                   >
-                    {isAssistant && (
-                      <KennedyTalkingAvatar
-                        size="xs"
-                        state={voice.assistantState}
-                        isSpeaking={voice.isSpeaking}
-                        isListening={voice.isListening}
-                        isProcessing={voice.isProcessing}
-                        audioLevel={voice.audioLevel}
-                        mouthOpen={voice.mouthOpen}
-                        viseme={voice.currentViseme}
-                        interactive={false}
-                        showAura={false}
-                        badge={false}
-                      />
-                    )}
-
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3.5 space-y-2 shadow-sm ${
+                      className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 shadow-md ${
                         isAssistant
-                          ? 'bg-slate-900/90 border border-white/10 text-slate-200'
-                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium self-end rounded-tr-sm'
+                          ? 'bg-slate-900/90 border border-slate-700/80 text-slate-200'
+                          : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-cyan-900/20'
                       }`}
                     >
+                      {/* Message Content */}
                       <div className="space-y-1">
-                        {isAssistant ? formatMarkdown(msg.text) : <p>{msg.text}</p>}
+                        {isAssistant ? (
+                          <>
+                            <div>{formatMarkdown(msg.text)}</div>
+                            {msg.isStreaming && (
+                              <span className="inline-block w-1.5 h-3.5 ml-1 bg-cyan-400 animate-pulse align-middle" />
+                            )}
+                          </>
+                        ) : (
+                          <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                        )}
                       </div>
 
-                      {/* Streaming cursor */}
-                      {msg.isStreaming && (
-                        <span className="inline-block w-1.5 h-3 bg-cyan-400 animate-pulse ml-1" />
+                      {/* Grounded Sources Badges */}
+                      {isAssistant && msg.sources && msg.sources.length > 0 && !msg.isStreaming && (
+                        <div className="mt-2 pt-1.5 border-t border-white/10 flex flex-wrap gap-1 items-center">
+                          <span className="text-[9px] uppercase tracking-wider text-cyan-400/80 font-bold">
+                            Grounded in:
+                          </span>
+                          {msg.sources.map((src, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="px-1.5 py-0.5 rounded bg-cyan-950/70 text-cyan-300 text-[9px] border border-cyan-800/60"
+                            >
+                              {src}
+                            </span>
+                          ))}
+                        </div>
                       )}
 
-                      {/* Interactive Action Pills */}
-                      {msg.actions && msg.actions.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/10">
-                          {msg.actions.map((act, aIdx) => (
+                      {/* Action Chips */}
+                      {isAssistant && msg.actions && msg.actions.length > 0 && !msg.isStreaming && (
+                        <div className="mt-2.5 pt-1.5 border-t border-white/10 flex flex-wrap gap-1.5">
+                          {msg.actions.map((action, aIdx) => (
                             <button
                               key={aIdx}
-                              onClick={() => handleActionClick(act)}
-                              className="px-2.5 py-1 rounded-full bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/40 text-[11px] font-mono text-cyan-300 flex items-center space-x-1 transition-all hover:scale-105"
+                              onClick={() => handleActionClick(action)}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 hover:text-white text-[10px] font-semibold flex items-center space-x-1 transition-all"
                             >
-                              <span>{act.label}</span>
-                              {act.type === 'external_link' ? (
-                                <ExternalLink className="w-2.5 h-2.5 text-cyan-400" />
+                              <span>{action.label}</span>
+                              {action.type === 'external_link' ? (
+                                <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
                               ) : (
-                                <ArrowRight className="w-2.5 h-2.5 text-cyan-400" />
+                                <ArrowRight className="w-2.5 h-2.5 ml-0.5" />
                               )}
                             </button>
                           ))}
                         </div>
                       )}
 
-                      {/* Message Footer */}
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1">
+                      {/* Message Timestamp & Audio Controls */}
+                      <div
+                        className={`flex items-center justify-between text-[10px] mt-1.5 pt-1 border-t ${
+                          isAssistant
+                            ? 'border-white/5 text-slate-500'
+                            : 'border-white/10 text-cyan-200'
+                        }`}
+                      >
                         <span>{msg.timestamp}</span>
 
-                        {isAssistant && (
+                        {isAssistant && !msg.isStreaming && (
                           <div className="flex items-center space-x-1.5 opacity-80 hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => voice.sendMessage(msg.text)}
@@ -579,12 +804,13 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
               {voice.isProcessing && (
                 <div className="flex items-center space-x-2 text-cyan-400 font-mono text-xs pl-2">
                   <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                  <span>Mr. Kennedy is processing your question...</span>
+                  <span>Mr. Kennedy is thinking &amp; retrieving verified knowledge...</span>
                   <button
                     onClick={voice.stopGeneration}
-                    className="ml-2 px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px]"
+                    className="ml-2 px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 hover:text-white border border-rose-700/80 text-[10px] flex items-center space-x-1"
                   >
-                    Stop
+                    <Square className="w-2.5 h-2.5 fill-current" />
+                    <span>Stop</span>
                   </button>
                 </div>
               )}
@@ -684,15 +910,27 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                   className="flex-1 px-3.5 py-2.5 rounded-full bg-slate-950 border border-slate-700/80 text-xs font-mono text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                 />
 
-                {/* Send Button */}
-                <button
-                  type="submit"
-                  disabled={!inputValue.trim() || voice.isProcessing}
-                  className="p-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white disabled:opacity-40 disabled:hover:from-cyan-500 disabled:hover:to-indigo-600 transition-all shadow-md shadow-indigo-500/20"
-                  title="Send message"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
+                {/* Stop Generation Button when generating */}
+                {voice.isProcessing ? (
+                  <button
+                    type="button"
+                    onClick={voice.stopGeneration}
+                    className="p-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-md shadow-rose-500/20"
+                    title="Stop Generating"
+                  >
+                    <Square className="w-4 h-4 fill-current" />
+                  </button>
+                ) : (
+                  /* Send Button */
+                  <button
+                    type="submit"
+                    disabled={!inputValue.trim() || voice.isProcessing}
+                    className="p-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white disabled:opacity-40 disabled:hover:from-cyan-500 disabled:hover:to-indigo-600 transition-all shadow-md shadow-indigo-500/20"
+                    title="Send message"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                )}
               </form>
             </footer>
           </>

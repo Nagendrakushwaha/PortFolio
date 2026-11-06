@@ -23,6 +23,9 @@ export default defineConfig(({ mode }) => {
                 handleRealtimeSession,
                 handleTTS,
                 handleChat,
+                handleKnowledgeUpload,
+                handleKnowledgeList,
+                handleKnowledgeDelete,
               } = await import('./server/voice-handlers.js')
 
               const url = new URL(req.url, 'http://localhost')
@@ -55,6 +58,19 @@ export default defineConfig(({ mode }) => {
 
               if (url.pathname === '/api/chat' && req.method === 'POST') {
                 return await handleChat(req, res, body)
+              }
+
+              if (url.pathname === '/api/knowledge/upload' && req.method === 'POST') {
+                return await handleKnowledgeUpload(req, res, body)
+              }
+
+              if (url.pathname === '/api/knowledge/documents' && req.method === 'GET') {
+                return await handleKnowledgeList(req, res)
+              }
+
+              if (url.pathname.startsWith('/api/knowledge/documents/') && req.method === 'DELETE') {
+                const docId = url.pathname.replace('/api/knowledge/documents/', '')
+                return await handleKnowledgeDelete(req, res, docId)
               }
 
               next()

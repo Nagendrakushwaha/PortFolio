@@ -9,6 +9,7 @@
     "mcp": "node server/mcp-server.js",
     "mcp:http": "node server/mcp-server.js --http --port 3001",
     "build": "tsc -b && vite build",
+    "test": "node test-kennedy-suite.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },

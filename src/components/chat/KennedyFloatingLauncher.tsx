@@ -52,7 +52,7 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
     : isSpeaking
     ? voice.lastAssistantSnippet || 'Mr. Kennedy is speaking...'
     : isProcessing
-    ? 'Processing question with portfolio knowledge engine...'
+    ? 'Thinking & retrieving verified knowledge...'
     : voice.sttError
     ? voice.sttError
     : null;
@@ -156,10 +156,12 @@ export const KennedyFloatingLauncher: React.FC<KennedyFloatingLauncherProps> = (
                   : isListening
                   ? 'Listening'
                   : isProcessing
-                  ? 'Processing'
+                  ? 'Thinking'
                   : isMicMuted
                   ? 'Muted'
-                  : 'Ready'}
+                  : voice.sttError
+                  ? 'Notice'
+                  : 'Available'}
               </span>
             </div>
 

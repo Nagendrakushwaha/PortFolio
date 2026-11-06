@@ -10,7 +10,6 @@ import React, {
 import {
   kennedyEngine,
   type ChatAction,
-  type AssistantResponse,
 } from '../lib/kennedyKnowledgeEngine';
 import { soundSynth } from '../lib/soundSynthesizer';
 import { audioLipSync } from '../lib/audioLipSync';
@@ -177,7 +176,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   // 4. Voice Output Configuration
   const [isVoiceOutputEnabled, setIsVoiceOutputEnabled] = useState<boolean>(true);
   const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>([]);
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('echo');
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('shimmer');
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [activeProvider, setActiveProvider] = useState<'openai' | 'elevenlabs' | 'browser'>('openai');
   const [isNeuralVoiceActive, setIsNeuralVoiceActive] = useState<boolean>(false);
@@ -197,6 +196,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   const micPollingFrameRef = useRef<number | null>(null);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const generationAbortRef = useRef<boolean>(false);
+  const currentAbortRef = useRef<(() => void) | null>(null);
   const submissionLockRef = useRef<boolean>(false);
   const latestTranscriptRef = useRef<string>('');
   const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -209,7 +209,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   const isVoiceSessionActiveRef = useRef<boolean>(false);
   const isMicMutedRef = useRef<boolean>(false);
   const activeProviderRef = useRef<'openai' | 'elevenlabs' | 'browser'>('openai');
-  const selectedVoiceIdRef = useRef<string>('echo');
+  const selectedVoiceIdRef = useRef<string>('shimmer');
 
   isSpeakingRef.current = isSpeaking;
   isListeningRef.current = isListening;
@@ -798,7 +798,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     [isVoiceOutputEnabled, selectedVoice, speechRate, speechPitch, stopSpeaking]
   );
 
-  // 8. Send user message & generate response using verified portfolio knowledge engine
+  // 8. Send user message & stream response using OpenAI / RAG Knowledge Engine
   const handleUserMessage = useCallback(
     async (textToSend?: string) => {
       const text = (textToSend || '').trim();
@@ -827,56 +827,78 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       try {
         const historyContext = messages.map((m) => ({ sender: m.sender, text: m.text }));
 
-        // 1. Query Verified Knowledge Engine for Grounded Answer
-        const response: AssistantResponse = await kennedyEngine.query(text, historyContext);
-
-        if (generationAbortRef.current) {
-          setIsProcessing(false);
-          return;
-        }
-
         const assistantMsgId = `assistant-${Date.now()}`;
-        const fullText = response.text;
+        let accumulatedText = '';
+        let streamFinished = false;
 
-        // Visual streaming text display
+        // Visual streaming placeholder
         const streamingMsg: ChatMessage = {
           id: assistantMsgId,
           sender: 'assistant',
           text: '',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          actions: response.actions,
-          sources: response.sources,
           isStreaming: true,
         };
 
         setMessages((prev) => [...prev, streamingMsg]);
 
-        const words = fullText.split(' ');
-        const step = Math.max(1, Math.floor(words.length / 24));
+        // Stream tokens in real time from OpenAI via /api/chat
+        const cancelStream = voiceService.streamChat(
+          text,
+          historyContext,
+          {
+            onToken: (token) => {
+              if (generationAbortRef.current) return;
+              accumulatedText += token;
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantMsgId ? { ...m, text: accumulatedText } : m))
+              );
+            },
+            onDone: async ({ sources, actions }) => {
+              if (generationAbortRef.current || streamFinished) return;
+              streamFinished = true;
+              currentAbortRef.current = null;
+              setIsProcessing(false);
 
-        for (let i = 0; i < words.length; i += step) {
-          if (generationAbortRef.current) break;
-          const currentSlice = words.slice(0, i + step).join(' ');
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, text: accumulatedText, isStreaming: false, sources, actions }
+                    : m
+                )
+              );
 
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantMsgId ? { ...m, text: currentSlice } : m))
-          );
-          await new Promise((r) => setTimeout(r, 16));
-        }
-
-        // Finalize text
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsgId
-              ? { ...m, text: fullText, isStreaming: false }
-              : m
-          )
+              // Speak aloud using natural AI voice if output is enabled
+              if (!generationAbortRef.current && accumulatedText.trim()) {
+                await speakText(accumulatedText);
+              }
+            },
+            onError: async (errMsg) => {
+              logDiag('AI', 'Backend stream error, using grounded knowledge fallback:', errMsg);
+              currentAbortRef.current = null;
+              const fallbackResponse = await kennedyEngine.query(text, historyContext);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? {
+                        ...m,
+                        text: fallbackResponse.text,
+                        isStreaming: false,
+                        sources: fallbackResponse.sources,
+                        actions: fallbackResponse.actions,
+                      }
+                    : m
+                )
+              );
+              setIsProcessing(false);
+              if (!generationAbortRef.current && fallbackResponse.text) {
+                await speakText(fallbackResponse.text);
+              }
+            },
+          }
         );
 
-        // Speak aloud using natural AI voice
-        if (!generationAbortRef.current) {
-          await speakText(fullText);
-        }
+        currentAbortRef.current = cancelStream;
       } catch (err: any) {
         logDiag('AI', 'Error querying assistant engine:', err);
         const errorMsg: ChatMessage = {
@@ -1082,7 +1104,12 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     sendMessage: handleUserMessage,
     stopGeneration: () => {
       generationAbortRef.current = true;
+      if (currentAbortRef.current) {
+        currentAbortRef.current();
+        currentAbortRef.current = null;
+      }
       setIsProcessing(false);
+      stopSpeaking();
     },
     clearChat: () => {
       stopSpeaking();

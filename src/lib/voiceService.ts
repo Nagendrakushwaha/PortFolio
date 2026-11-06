@@ -1,6 +1,7 @@
 /**
- * Voice Service Client
- * Handles communication with backend AI voice and speech endpoints (/api/tts, /api/realtime-session, /api/stt, /api/voice-status)
+ * Voice Service Client & Knowledge API Bridge for Mr. Kennedy
+ * Handles communication with backend AI voice, speech, streaming LLM chat,
+ * and secure Knowledge Management endpoints.
  * Never exposes API keys or secrets on the frontend.
  */
 
@@ -19,6 +20,12 @@ export interface VoiceProviderStatus {
   activeProvider: 'openai' | 'elevenlabs' | 'browser';
   activeVoice: string;
   isRealtimeCapable: boolean;
+  knowledgeStats?: {
+    totalDocuments: number;
+    totalChunks: number;
+    baseDossierChunks: number;
+    customDocuments: any[];
+  };
   message?: string;
 }
 
@@ -28,6 +35,12 @@ export interface RealtimeSessionResponse {
     expires_at: number;
   };
   error?: string;
+}
+
+export interface ChatStreamCallbacks {
+  onToken: (token: string) => void;
+  onDone: (meta: { sources?: string[]; actions?: any[] }) => void;
+  onError: (error: string) => void;
 }
 
 export class VoiceServiceClient {
@@ -45,9 +58,9 @@ export class VoiceServiceClient {
   /**
    * Fetch current backend voice capabilities and configured providers
    */
-  public async getVoiceStatus(): Promise<VoiceProviderStatus> {
-    if (this.statusCache) return this.statusCache;
-    if (this.statusPromise) return this.statusPromise;
+  public async getVoiceStatus(forceRefresh = false): Promise<VoiceProviderStatus> {
+    if (!forceRefresh && this.statusCache) return this.statusCache;
+    if (!forceRefresh && this.statusPromise) return this.statusPromise;
 
     this.statusPromise = (async () => {
       try {
@@ -64,33 +77,36 @@ export class VoiceServiceClient {
         console.warn('[VoiceService] /api/voice-status not available, using default client profile:', err);
       }
 
-      // Default fallback profile if backend endpoint is unavailable or running purely static
+      // Default fallback profile (Natural female voice 'shimmer' by default)
       const fallback: VoiceProviderStatus = {
         openai: {
           available: false,
           realtimeAvailable: false,
-          defaultVoice: 'echo',
+          defaultVoice: 'shimmer',
           supportedVoices: [
+            { id: 'shimmer', name: 'Shimmer', gender: 'female', description: 'Clear, expressive, professional natural female (Default)' },
+            { id: 'nova', name: 'Nova', gender: 'female', description: 'Warm, conversational, natural female' },
+            { id: 'coral', name: 'Coral', gender: 'female', description: 'Articulate, contemporary natural female' },
             { id: 'echo', name: 'Echo', gender: 'male', description: 'Warm, articulate, natural conversational male' },
             { id: 'ash', name: 'Ash', gender: 'male', description: 'Clear, modern conversational male' },
             { id: 'onyx', name: 'Onyx', gender: 'male', description: 'Deep, resonant, authoritative male' },
-            { id: 'fable', name: 'Fable', gender: 'male', description: 'Expressive British accent male' },
             { id: 'alloy', name: 'Alloy', gender: 'neutral', description: 'Balanced, versatile neutral' },
           ],
         },
         elevenlabs: {
           available: false,
-          defaultVoice: 'George',
+          defaultVoice: 'Rachel',
           supportedVoices: [
-            { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', description: 'Warm, thoughtful, natural cadence' },
+            { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', gender: 'female', description: 'Calm, conversational, warm female' },
+            { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', description: 'Warm, thoughtful, British conversational male' },
             { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', description: 'Deep narrative American voice' },
             { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', gender: 'male', description: 'Engaging, crisp conversational male' },
           ],
         },
         activeProvider: 'browser',
-        activeVoice: 'echo',
+        activeVoice: 'shimmer',
         isRealtimeCapable: false,
-        message: 'Running in zero-credential client mode with local grounded knowledge engine.',
+        message: 'Running in zero-credential client mode with grounded knowledge engine.',
       };
 
       this.statusCache = fallback;
@@ -110,7 +126,7 @@ export class VoiceServiceClient {
     provider?: 'openai' | 'elevenlabs' | 'browser';
     speed?: number;
   }): Promise<ArrayBuffer | null> {
-    const { text, voice = 'echo', provider = 'openai', speed = 1.0 } = options;
+    const { text, voice = 'shimmer', provider = 'openai', speed = 1.0 } = options;
 
     if (!text.trim()) return null;
 
@@ -155,7 +171,7 @@ export class VoiceServiceClient {
   /**
    * Mint an ephemeral token for OpenAI Realtime WebRTC voice session
    */
-  public async createRealtimeSession(voice = 'echo'): Promise<RealtimeSessionResponse | null> {
+  public async createRealtimeSession(voice = 'shimmer'): Promise<RealtimeSessionResponse | null> {
     try {
       const res = await fetch('/api/realtime-session', {
         method: 'POST',
@@ -179,35 +195,94 @@ export class VoiceServiceClient {
   }
 
   /**
-   * Transcribe audio blob via OpenAI Whisper endpoint
+   * Real-time Streaming Chat with Server-Sent Events (SSE)
    */
-  public async transcribeAudio(audioBlob: Blob): Promise<string | null> {
-    try {
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'speech.webm');
+  public streamChat(
+    message: string,
+    history: Array<{ sender: string; text: string }> = [],
+    callbacks: ChatStreamCallbacks,
+    signal?: AbortSignal
+  ): () => void {
+    let isAborted = false;
 
-      const res = await fetch('/api/stt', {
-        method: 'POST',
-        body: formData,
-      });
+    (async () => {
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream, application/json',
+          },
+          body: JSON.stringify({ message, history, stream: true }),
+          signal,
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        return data.text || null;
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          callbacks.onError(errData.error || `Server responded with status ${res.status}`);
+          return;
+        }
+
+        const reader = res.body?.getReader();
+        if (!reader) {
+          callbacks.onError('ReadableStream not supported by browser environment.');
+          return;
+        }
+
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (!isAborted) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('data: ')) {
+              const dataStr = trimmed.slice(6);
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.error) {
+                  callbacks.onError(parsed.error);
+                  return;
+                }
+                if (parsed.token) {
+                  callbacks.onToken(parsed.token);
+                }
+                if (parsed.done) {
+                  callbacks.onDone({ sources: parsed.sources, actions: parsed.actions });
+                  return;
+                }
+              } catch {
+                // Ignore non-json lines
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          return;
+        }
+        callbacks.onError(err.message || 'Error communicating with AI assistant.');
       }
-    } catch (err) {
-      console.warn('[VoiceService] Whisper transcription failed:', err);
-    }
-    return null;
+    })();
+
+    return () => {
+      isAborted = true;
+    };
   }
 
   /**
-   * Query conversational LLM proxy endpoint with portfolio grounding
+   * Non-streaming fallback chat query
    */
   public async queryChat(
     message: string,
     history: Array<{ sender: string; text: string }> = []
-  ): Promise<{ text: string; error?: string } | null> {
+  ): Promise<{ text: string; sources?: string[]; actions?: any[]; error?: string } | null> {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -215,19 +290,75 @@ export class VoiceServiceClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({ message, history, stream: false }),
       });
 
       if (res.ok) {
-        const data = await res.json();
-        if (data.text) {
-          return { text: data.text };
-        }
+        return await res.json();
       }
-    } catch (err) {
-      console.warn('[VoiceService] /api/chat error, falling back to local knowledge engine:', err);
+    } catch (err: any) {
+      console.warn('[VoiceService] /api/chat error:', err);
     }
     return null;
+  }
+
+  // ==============================================================================
+  // KNOWLEDGE MANAGEMENT ADMIN CLIENT METHODS
+  // ==============================================================================
+
+  public async uploadKnowledge(data: {
+    filename?: string;
+    fileBase64?: string;
+    textContent?: string;
+    category?: string;
+    title?: string;
+    adminKey: string;
+  }): Promise<{ status: string; document?: any; message?: string; chunksCreated?: number; error?: string }> {
+    try {
+      const res = await fetch('/api/knowledge/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${data.adminKey}`,
+          'x-admin-key': data.adminKey,
+        },
+        body: JSON.stringify(data),
+      });
+
+      return await res.json();
+    } catch (err: any) {
+      return { status: 'error', error: err.message || 'Network error uploading knowledge' };
+    }
+  }
+
+  public async listKnowledge(adminKey: string): Promise<any> {
+    try {
+      const res = await fetch('/api/knowledge/documents', {
+        headers: {
+          'Authorization': `Bearer ${adminKey}`,
+          'x-admin-key': adminKey,
+        },
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { error: err.message || 'Network error listing knowledge' };
+    }
+  }
+
+  public async deleteKnowledge(docId: string, adminKey: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/knowledge/documents/${docId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${adminKey}`,
+          'x-admin-key': adminKey,
+        },
+      });
+      const data = await res.json();
+      return Boolean(data.success);
+    } catch {
+      return false;
+    }
   }
 }
 
