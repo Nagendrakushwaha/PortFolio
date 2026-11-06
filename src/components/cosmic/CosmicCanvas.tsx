@@ -231,9 +231,9 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
         );
       }
 
-      // Galaxy update with intelligent cursor particle deflection
+      // Galaxy update with intelligent cursor particle deflection & accelerated cosmic speed
       if (galaxyRef.current && !reducedMotion) {
-        galaxyRef.current.update(delta, mouseWorldPoint);
+        galaxyRef.current.update(delta, mouseWorldPoint, speedMultiplierRef.current);
       }
 
       // Wormhole update
@@ -304,9 +304,9 @@ export const CosmicCanvas: React.FC<CosmicCanvasProps> = ({
       wormhole.setActive(false);
       worlds.setActive(false);
       if (earth) earth.setVisible(true);
-      galaxy.setOpacity(0.55); // Keeping galaxy visible with the 3D Earth!
+      galaxy.setOpacity(0.7); // Vivid, energetic galaxy roaming around 3D Earth
 
-      gsap.to(speedMultiplierRef, { current: 0.7, duration: 1.5 });
+      gsap.to(speedMultiplierRef, { current: 1.5, duration: 1.2 });
       gsap.to(camera.position, {
         x: 0,
         y: 0,

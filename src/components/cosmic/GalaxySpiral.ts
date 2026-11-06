@@ -122,9 +122,10 @@ export class GalaxySpiral {
   /**
    * Update galaxy rotation and respond to mouse cursor interaction
    */
-  public update(delta: number, mouseWorldPos?: THREE.Vector3) {
-    // Continuous subtle galaxy rotation
-    this.points.rotation.y += delta * 0.025;
+  public update(delta: number, mouseWorldPos?: THREE.Vector3, speedMultiplier: number = 1.0) {
+    // Dynamic continuous galaxy rotation - energetic cosmic swirl around the Earth
+    this.points.rotation.y += delta * 0.22 * speedMultiplier;
+    this.group.rotation.z += delta * 0.025 * speedMultiplier;
 
     // If mouse world position is supplied, gently push nearby particles
     if (mouseWorldPos) {
