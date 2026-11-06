@@ -8,6 +8,7 @@ import {
   handleVoiceStatus,
   handleRealtimeSession,
   handleTTS,
+  handleSTT,
   handleChat,
   handleKnowledgeUpload,
   handleKnowledgeList,
@@ -68,6 +69,11 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/tts' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       return await handleTTS(req, res, body);
+    }
+
+    if (url.pathname === '/api/stt' && req.method === 'POST') {
+      const body = await parseJsonBody(req);
+      return await handleSTT(req, res, body);
     }
 
     if (url.pathname === '/api/chat' && req.method === 'POST') {

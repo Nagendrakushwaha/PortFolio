@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
                 handleVoiceStatus,
                 handleRealtimeSession,
                 handleTTS,
+                handleSTT,
                 handleChat,
                 handleKnowledgeUpload,
                 handleKnowledgeList,
@@ -54,6 +55,10 @@ export default defineConfig(({ mode }) => {
 
               if (url.pathname === '/api/tts' && req.method === 'POST') {
                 return await handleTTS(req, res, body)
+              }
+
+              if (url.pathname === '/api/stt' && req.method === 'POST') {
+                return await handleSTT(req, res, body)
               }
 
               if (url.pathname === '/api/chat' && req.method === 'POST') {

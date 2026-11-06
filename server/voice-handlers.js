@@ -280,6 +280,67 @@ export async function handleTTS(req, res, body = {}) {
 }
 
 /**
+ * Handle POST /api/stt
+ * Transcribes audio via OpenAI Whisper (whisper-1)
+ * Used as primary/fallback STT for Brave Browser, Firefox, Safari, and whenever Google Speech is blocked
+ */
+export async function handleSTT(req, res, body = {}) {
+  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const { audioBase64, mimeType = 'audio/webm' } = body;
+
+  if (!audioBase64) {
+    res.statusCode = 400;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ error: 'audioBase64 parameter is required' }));
+  }
+
+  if (!openaiKey) {
+    res.statusCode = 503;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(
+      JSON.stringify({
+        error: 'OPENAI_API_KEY is not configured for Whisper speech transcription.',
+        hint: 'brave_privacy_setting',
+      })
+    );
+  }
+
+  try {
+    const buffer = Buffer.from(audioBase64, 'base64');
+    const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('wav') ? 'wav' : 'webm';
+    const blob = new Blob([buffer], { type: mimeType });
+
+    const formData = new FormData();
+    formData.append('file', blob, `speech.${ext}`);
+    formData.append('model', 'whisper-1');
+
+    const oaiRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+      },
+      body: formData,
+    });
+
+    const data = await oaiRes.json();
+    if (!oaiRes.ok) {
+      res.statusCode = oaiRes.status;
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ error: data.error?.message || 'Whisper transcription error' }));
+    }
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ text: data.text || '' }));
+  } catch (err) {
+    console.error('[VoiceBackend] Whisper STT error:', err);
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ error: err.message || 'Error processing speech audio' }));
+  }
+}
+
+/**
  * Detect smart quick actions based on user message and reply
  */
 function extractChatActions(query = '', reply = '') {

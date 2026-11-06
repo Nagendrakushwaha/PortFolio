@@ -202,6 +202,9 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fallbackAnimFrameRef = useRef<number | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const useWhisperModeRef = useRef<boolean>(false);
 
   // Active state mirrors for non-stale callbacks
   const isSpeakingRef = useRef<boolean>(false);
@@ -380,6 +383,10 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       try { recognitionRef.current.abort(); } catch {}
       recognitionRef.current = null;
     }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch {}
+      mediaRecorderRef.current = null;
+    }
     if (micPollingFrameRef.current) {
       cancelAnimationFrame(micPollingFrameRef.current);
       micPollingFrameRef.current = null;
@@ -436,7 +443,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     }
   }, []);
 
-  // 6. Speech-to-Text Listening Loop
+  // 6. Speech-to-Text Listening Loop (Dual-Engine: Web Speech API + MediaRecorder Whisper)
   const startListeningLoop = useCallback(() => {
     clearTimers();
 
@@ -445,11 +452,93 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       return;
     }
 
+    submissionLockRef.current = false;
+    latestTranscriptRef.current = '';
+    audioChunksRef.current = [];
+
+    // 1. Initialize MediaRecorder audio capture in parallel
+    if (mediaStreamRef.current && typeof MediaRecorder !== 'undefined') {
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          try { mediaRecorderRef.current.stop(); } catch {}
+        }
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : '';
+
+        const recorder = new MediaRecorder(mediaStreamRef.current, mimeType ? { mimeType } : undefined);
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          logDiag('STT', 'MediaRecorder onstop fired.');
+          if (submissionLockRef.current || !isVoiceSessionActiveRef.current) return;
+
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
+          if (audioBlob.size > 1800) {
+            submissionLockRef.current = true;
+            setIsListening(false);
+            setIsProcessing(true);
+            setInterimTranscript('Transcribing speech with Whisper AI...');
+
+            try {
+              const reader = new FileReader();
+              reader.onload = async () => {
+                const base64 = (reader.result as string).split(',')[1];
+                const res = await voiceService.transcribeAudio(base64, mimeType || 'audio/webm');
+                if (res.text && res.text.trim().length > 1) {
+                  setTranscript(res.text.trim());
+                  setInterimTranscript('');
+                  handleUserMessageRef.current(res.text.trim());
+                } else if (res.hint === 'brave_privacy_setting') {
+                  setSttError("In Brave Browser, Google speech service is disabled by default. You can enable it in brave://settings/privacy ('Use Google services for speech recognition') or add OPENAI_API_KEY for Whisper STT.");
+                  setIsProcessing(false);
+                } else {
+                  setSttError('No speech was detected. Please ask your question again or type below.');
+                  setIsProcessing(false);
+                }
+              };
+              reader.readAsDataURL(audioBlob);
+            } catch (err: any) {
+              logDiag('STT', 'Whisper audio transcription error:', err);
+              setIsProcessing(false);
+            }
+          }
+        };
+
+        recorder.start(200);
+        mediaRecorderRef.current = recorder;
+      } catch (err) {
+        logDiag('STT', 'MediaRecorder initialization error:', err);
+      }
+    }
+
     const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognitionClass) {
-      const err = 'Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.';
-      logDiag('STT', `Error: ${err}`);
-      setSttError(err);
+
+    // If Web Speech API was previously network-blocked (e.g. Brave), run in Direct Audio mode
+    if (!SpeechRecognitionClass || useWhisperModeRef.current) {
+      logDiag('STT', 'Running in Direct Audio Whisper mode.');
+      setIsListening(true);
+      setIsProcessing(false);
+      setTranscript('');
+      setInterimTranscript('Listening... Speak now');
+      setSttError(null);
+
+      // Auto-submit after silence or max 9s
+      watchdogTimerRef.current = setTimeout(() => {
+        if (!submissionLockRef.current && isListeningRef.current && mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          try { mediaRecorderRef.current.stop(); } catch {}
+        }
+      }, 7500);
+
       return;
     }
 
@@ -463,8 +552,6 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
-      submissionLockRef.current = false;
-      latestTranscriptRef.current = '';
 
       recognition.onstart = () => {
         logDiag('STT', 'SpeechRecognition onstart fired. State -> listening');
@@ -474,17 +561,14 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         setInterimTranscript('');
         setSttError(null);
 
-        // Watchdog: detect complete silence after 8s and 14s
         watchdogTimerRef.current = setTimeout(() => {
-          logDiag('STT', 'Watchdog 8s fired: No speech activity detected yet.');
-          watchdogTimerRef.current = setTimeout(() => {
-            logDiag('STT', 'Watchdog 14s fired: No speech detected.');
-            if (!submissionLockRef.current && isListeningRef.current) {
-              setSttError('No speech was detected. Please ask a question or click the mic.');
-              try { recognition.stop(); } catch {}
-              setIsListening(false);
+          if (!submissionLockRef.current && isListeningRef.current) {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+              try { mediaRecorderRef.current.stop(); } catch {}
             }
-          }, 6000);
+            try { recognition.stop(); } catch {}
+            setIsListening(false);
+          }
         }, 8000);
       };
 
@@ -508,94 +592,69 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
           latestTranscriptRef.current = recognizedText;
         }
 
-        logDiag('STT', `onresult: interim="${currentInterim}", final="${currentFinal}"`);
-
         if (currentFinal.trim()) {
           setTranscript(currentFinal);
           setInterimTranscript('');
 
           if (!submissionLockRef.current) {
             submissionLockRef.current = true;
-            logDiag('STT', `Final transcript locked: "${currentFinal}". Transitioning -> Processing.`);
             setIsListening(false);
             setIsProcessing(true);
             try { recognition.stop(); } catch {}
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+              try { mediaRecorderRef.current.stop(); } catch {}
+            }
             handleUserMessageRef.current(currentFinal);
           }
         } else if (currentInterim.trim()) {
           setInterimTranscript(currentInterim);
-
-          if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-          silenceTimeoutRef.current = setTimeout(() => {
-            if (!submissionLockRef.current && latestTranscriptRef.current.trim().length > 1) {
-              submissionLockRef.current = true;
-              const pendingText = latestTranscriptRef.current.trim();
-              logDiag('STT', `Silence timeout submitting interim: "${pendingText}". Transitioning -> Processing.`);
-              setTranscript(pendingText);
-              setInterimTranscript('');
-              setIsListening(false);
-              setIsProcessing(true);
-              try { recognition.stop(); } catch {}
-              handleUserMessageRef.current(pendingText);
-            }
-          }, 1400);
         }
       };
 
       recognition.onerror = (event: { error: string; message?: string }) => {
-        logDiag('STT', `onerror fired: ${event.error}`, event);
+        logDiag('STT', `recognition.onerror: ${event.error}`, event);
         clearTimers();
+
+        if (event.error === 'network') {
+          // KEY RESOLUTION: Google Speech endpoint blocked (Brave Browser or network firewall)
+          // Seamlessly switch to MediaRecorder + Whisper engine with ZERO error alert!
+          logDiag('STT', 'Google Speech network block detected. Seamlessly activating Whisper engine.');
+          useWhisperModeRef.current = true;
+          try { recognition.abort(); } catch {}
+          recognitionRef.current = null;
+          setInterimTranscript('Listening... Speak your question');
+          setSttError(null);
+
+          // Allow MediaRecorder to capture the rest of the speech and transcribe with Whisper
+          watchdogTimerRef.current = setTimeout(() => {
+            if (!submissionLockRef.current && isListeningRef.current && mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+              try { mediaRecorderRef.current.stop(); } catch {}
+            }
+          }, 6500);
+          return;
+        }
+
         setIsListening(false);
 
         if (event.error === 'not-allowed') {
-          const err = 'Microphone permission was denied. Please allow microphone access in your browser to speak with Mr. Kennedy.';
-          logDiag('Mic', err);
-          setSttError(err);
+          setSttError('Microphone permission was denied. Please allow microphone access in your browser to speak with Mr. Kennedy.');
           setIsVoiceSessionActive(false);
         } else if (event.error === 'no-speech') {
-          logDiag('STT', 'SpeechRecognition reported no-speech.');
           if (!submissionLockRef.current && !latestTranscriptRef.current.trim()) {
             setSttError('No speech was detected. Click below to retry or type your question.');
           }
-        } else if (event.error === 'audio-capture') {
-          setSttError('No microphone audio received. Please check your system audio input.');
-        } else if (event.error === 'network') {
-          setSttError('Speech recognition network error. Please check your internet connection or use text chat.');
         } else if (event.error !== 'aborted') {
           setSttError(`Voice input error: ${event.error}`);
         }
       };
 
       recognition.onend = () => {
-        logDiag('STT', 'onend fired.');
+        logDiag('STT', 'recognition.onend fired.');
         clearTimers();
-        setIsListening(false);
 
-        // Fallback recovery if unsubmitted interim text exists
-        if (!submissionLockRef.current && latestTranscriptRef.current.trim().length > 1) {
-          submissionLockRef.current = true;
-          const capturedText = latestTranscriptRef.current.trim();
-          logDiag('STT', `onend fallback submitting transcript: "${capturedText}"`);
-          setTranscript(capturedText);
-          setInterimTranscript('');
-          setIsProcessing(true);
-          handleUserMessageRef.current(capturedText);
-          return;
-        }
-
-        // Re-arm listening loop if active and no speech was in flight
-        if (
-          isVoiceSessionActiveRef.current &&
-          !isMicMutedRef.current &&
-          !isSpeakingRef.current &&
-          !submissionLockRef.current
-        ) {
-          logDiag('STT', 'Auto-rearming listening loop for next turn.');
-          setTimeout(() => {
-            if (isVoiceSessionActiveRef.current && !isSpeakingRef.current && !isMicMutedRef.current) {
-              startListeningLoopRef.current();
-            }
-          }, 400);
+        // If Web Speech didn't trigger submission, stop MediaRecorder to transcribe with Whisper
+        if (!submissionLockRef.current && mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          try { mediaRecorderRef.current.stop(); } catch {}
         }
       };
 
@@ -603,9 +662,9 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       recognition.start();
       logDiag('STT', 'recognition.start() called.');
     } catch (err: any) {
-      logDiag('STT', 'Failed to start speech recognition loop:', err);
-      setSttError(`Unable to start speech recognition: ${err.message || 'Unknown error'}`);
-      setIsListening(false);
+      logDiag('STT', 'Speech recognition loop fallback:', err);
+      useWhisperModeRef.current = true;
+      setIsListening(true);
     }
   }, [clearTimers]);
   startListeningLoopRef.current = startListeningLoop;

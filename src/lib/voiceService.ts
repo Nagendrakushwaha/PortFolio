@@ -195,6 +195,29 @@ export class VoiceServiceClient {
   }
 
   /**
+   * Transcribe recorded audio with OpenAI Whisper via backend /api/stt
+   * Bypasses Google Cloud Speech servers (Works in Brave Browser, Firefox, Safari)
+   */
+  public async transcribeAudio(audioBase64: string, mimeType = 'audio/webm'): Promise<{ text?: string; error?: string; hint?: string }> {
+    try {
+      const res = await fetch('/api/stt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ audioBase64, mimeType }),
+      });
+
+      const data = await res.json();
+      return data;
+    } catch (err: any) {
+      console.warn('[VoiceService] Whisper transcription network error:', err);
+      return { error: err.message || 'Network error reaching /api/stt' };
+    }
+  }
+
+  /**
    * Real-time Streaming Chat with Server-Sent Events (SSE)
    */
   public streamChat(

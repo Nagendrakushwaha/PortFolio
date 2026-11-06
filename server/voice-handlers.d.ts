@@ -1,6 +1,7 @@
 export declare function handleVoiceStatus(req: any, res: any): Promise<void>;
 export declare function handleRealtimeSession(req: any, res: any, body?: any): Promise<void>;
 export declare function handleTTS(req: any, res: any, body?: any): Promise<void>;
+export declare function handleSTT(req: any, res: any, body?: any): Promise<void>;
 export declare function handleChat(req: any, res: any, body?: any): Promise<void>;
 export declare function handleKnowledgeUpload(req: any, res: any, body?: any): Promise<void>;
 export declare function handleKnowledgeList(req: any, res: any): Promise<void>;
