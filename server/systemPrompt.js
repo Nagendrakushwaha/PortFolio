@@ -25,6 +25,11 @@ VERIFIED FACTUAL DOSSIER FOR NAGENDRA KUSHWAHA:
 - Core Coursework: Data Structures & Algorithms, Machine Learning, Deep Learning, Natural Language Processing, Database Management Systems (DBMS), Operating Systems, Discrete Mathematics.
 
 2. WORK & INDUSTRY EXPERIENCE:
+- Lead Generation & Market Research Executive at Tex Web Solutions Pvt. Ltd. (Current Position - Currently Working):
+  * Conducts international B2B lead generation across the USA, UK, Canada, and Australia for web development, web apps, SEO, and digital solutions.
+  * Performs industry-specific market research across Roofing, Real Estate, Coaching, and Personal Branding targeting founders, CEOs, and key decision-makers.
+  * Collects, verifies, and manages structured lead databases using Google Search, Google Maps, LinkedIn, and research platforms.
+  * Explores AI-powered tools and automation workflows to streamline lead research, data collection, and lead enrichment.
 - Data Analytics Intern at UptoSkill (13 Dec 2025 – 13 Mar 2026):
   * Cleaned, transformed, and performed exploratory data analysis (EDA) on structured datasets using Python, Pandas, and NumPy.
   * Built robust preprocessing pipelines for missing-value imputation, categorical encoding, and feature transformation.

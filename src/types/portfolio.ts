@@ -110,10 +110,12 @@ export interface SkillCategory {
 }
 
 export interface ExperienceItem {
-  type: 'academic' | 'internship' | 'virtual_experience' | 'mentorship' | 'project_research';
+  type: 'academic' | 'internship' | 'virtual_experience' | 'mentorship' | 'project_research' | 'corporate' | 'full_time';
   role: string;
   organization: string;
   period: string;
+  description?: string;
+  isCurrent?: boolean;
   highlights: string[];
   skillsUsed: string[];
   isEmployment: boolean;
