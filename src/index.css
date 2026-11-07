@@ -169,6 +169,38 @@ html, body {
   transform: translateY(-2px);
 }
 
+/* Voice Navigation Glowing Section Highlight */
+@keyframes voiceSectionGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7), inset 0 0 0 0 rgba(99, 102, 241, 0.4);
+    outline: 3px solid rgba(14, 165, 233, 0.9);
+    outline-offset: 4px;
+  }
+  30% {
+    box-shadow: 0 0 45px 10px rgba(14, 165, 233, 0.4), inset 0 0 35px 6px rgba(99, 102, 241, 0.25);
+    outline: 3px solid rgba(99, 102, 241, 1);
+    outline-offset: 8px;
+  }
+  70% {
+    box-shadow: 0 0 30px 6px rgba(14, 165, 233, 0.25), inset 0 0 20px 4px rgba(99, 102, 241, 0.15);
+    outline: 2px solid rgba(14, 165, 233, 0.6);
+    outline-offset: 6px;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0), inset 0 0 0 0 rgba(99, 102, 241, 0);
+    outline: 2px solid transparent;
+    outline-offset: 0px;
+  }
+}
+
+.voice-nav-highlight {
+  animation: voiceSectionGlow 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  border-radius: 1.5rem !important;
+  position: relative;
+  z-index: 30;
+  transition: all 0.3s ease;
+}
+
 /* Reduced motion overrides */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

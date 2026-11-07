@@ -11,6 +11,8 @@ import {
   kennedyEngine,
   type ChatAction,
 } from '../lib/kennedyKnowledgeEngine';
+import { matchNavigationIntent } from '../lib/voiceNavigationRouter';
+import { profileData } from '../data/profile';
 import { soundSynth } from '../lib/soundSynthesizer';
 import { audioLipSync } from '../lib/audioLipSync';
 import { voiceService } from '../lib/voiceService';
@@ -336,13 +338,40 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         });
       });
 
-      const englishMale = browserVoices.find((v) =>
-        maleKeywords.some((kw) => v.name.toLowerCase().includes(kw)) && v.lang.startsWith('en')
-      );
-      if (englishMale) {
-        setSelectedVoice(englishMale);
-      } else if (browserVoices[0]) {
-        setSelectedVoice(browserVoices[0]);
+      // Natural female voice preferred, with Indian English voice prioritized
+      const femaleKeywords = [
+        'female', 'woman', 'zira', 'jenny', 'samantha', 'victoria', 'karen', 'fiona',
+        'neerja', 'heera', 'kalpana', 'veena', 'ananya', 'leena', 'swara'
+      ];
+
+      const indianEnFemale = browserVoices.find((v) => {
+        const lang = v.lang.toLowerCase();
+        const name = v.name.toLowerCase();
+        const isIndianEn = lang.includes('en-in') || lang.includes('en_in') || name.includes('india');
+        const isFemale = femaleKeywords.some((kw) => name.includes(kw));
+        return isIndianEn && isFemale;
+      });
+
+      const indianEn = browserVoices.find((v) => {
+        const lang = v.lang.toLowerCase();
+        const name = v.name.toLowerCase();
+        return lang.includes('en-in') || lang.includes('en_in') || name.includes('india');
+      });
+
+      const englishFemale = browserVoices.find((v) => {
+        const lang = v.lang.toLowerCase();
+        const name = v.name.toLowerCase();
+        const isEnglish = lang.startsWith('en');
+        const isFemale = femaleKeywords.some((kw) => name.includes(kw)) || (!maleKeywords.some((kw) => name.includes(kw)));
+        return isEnglish && isFemale;
+      });
+
+      const englishAny = browserVoices.find((v) => v.lang.toLowerCase().startsWith('en'));
+
+      const preferredVoice = indianEnFemale || indianEn || englishFemale || englishAny || browserVoices[0];
+      if (preferredVoice) {
+        setSelectedVoice(preferredVoice);
+        setSelectedVoiceId(`browser:${preferredVoice.name}`);
       }
     }
 
@@ -924,6 +953,84 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
 
       setMessages((prev) => [...prev, userMsg]);
 
+      // 1. FAST DETERMINISTIC VOICE NAVIGATION INTENT ROUTER
+      const navIntent = matchNavigationIntent(text);
+      if (navIntent.matched) {
+        logDiag('Nav', `Matched navigation intent: ${navIntent.actionType} -> ${navIntent.targetId || navIntent.projectSlug || navIntent.direction}`);
+        setIsProcessing(false);
+
+        // A. Trigger specific navigation action
+        if (navIntent.actionType === 'scroll_section' && navIntent.targetId) {
+          if (onScrollToSection) {
+            onScrollToSection(navIntent.targetId);
+          }
+        } else if (navIntent.actionType === 'open_resume') {
+          const resumeUrl = profileData.resumes?.[0]?.url || '/AI_ML%20resume.pdf';
+          try {
+            window.open(resumeUrl, '_blank');
+          } catch {}
+          if (onScrollToSection) {
+            onScrollToSection('hero');
+          }
+        } else if (navIntent.actionType === 'open_project' && navIntent.projectSlug) {
+          if (onOpenProjectModal) {
+            onOpenProjectModal(navIntent.projectSlug);
+          }
+        } else if (navIntent.actionType === 'close_modal') {
+          window.dispatchEvent(new CustomEvent('close-project-modal'));
+        } else if (navIntent.actionType === 'scroll_direction') {
+          if (navIntent.direction === 'down') {
+            window.scrollBy({ top: window.innerHeight * 0.75, behavior: 'smooth' });
+          } else if (navIntent.direction === 'up') {
+            window.scrollBy({ top: -window.innerHeight * 0.75, behavior: 'smooth' });
+          }
+        }
+
+        // B. Determine Response Text
+        const isHindi = voiceLanguage === 'hi' || /[\u0900-\u097F]/.test(text);
+        const spokenText = isHindi ? navIntent.spokenResponseHindi : navIntent.spokenResponse;
+        const displayText = navIntent.displayMessage;
+
+        const navActions: ChatAction[] = [];
+        if (navIntent.actionType === 'scroll_section' && navIntent.targetId) {
+          navActions.push({
+            type: 'scroll',
+            label: navIntent.actionLabel || `View ${navIntent.targetId}`,
+            payload: navIntent.targetId,
+          });
+        } else if (navIntent.actionType === 'open_resume') {
+          navActions.push({
+            type: 'external_link',
+            label: 'Download Resume (PDF)',
+            payload: profileData.resumes?.[0]?.url || '/AI_ML%20resume.pdf',
+          });
+        } else if (navIntent.actionType === 'open_project' && navIntent.projectSlug) {
+          navActions.push({
+            type: 'project_modal',
+            label: navIntent.actionLabel || 'View Case Study',
+            payload: navIntent.projectSlug,
+          });
+        }
+
+        const navAssistantMsg: ChatMessage = {
+          id: `assistant-nav-${Date.now()}`,
+          sender: 'assistant',
+          text: displayText,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          actions: navActions,
+          engine: 'voice_navigation_router',
+          model: 'Deterministic Portfolio Navigator',
+        };
+
+        setMessages((prev) => [...prev, navAssistantMsg]);
+
+        // C. Speak response aloud if voice output enabled
+        if (isVoiceOutputEnabled) {
+          await speakText(spokenText);
+        }
+        return;
+      }
+
       try {
         const historyContext = messages.map((m) => ({ sender: m.sender, text: m.text }));
 
@@ -1023,7 +1130,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         setIsProcessing(false);
       }
     },
-    [messages, speakText, stopSpeaking]
+    [messages, speakText, stopSpeaking, onScrollToSection, onOpenProjectModal, isVoiceOutputEnabled, voiceLanguage]
   );
   handleUserMessageRef.current = handleUserMessage;
 

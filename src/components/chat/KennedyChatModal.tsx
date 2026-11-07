@@ -39,14 +39,14 @@ export interface KennedyChatModalProps {
 }
 
 const INITIAL_SUGGESTIONS = [
-  'Who is Nagendra Kushwaha?',
-  'What is his professional experience at Tex Web Solutions?',
-  'Explain the Customer Support AI project.',
-  'What are his academic qualifications at Sam Global University?',
-  'Explain his speech emotion recognition system.',
+  'Open my projects.',
+  'Show me my professional experience.',
+  'Take me to my education.',
+  'Open my resume.',
+  'Show me my best AI project.',
+  'Go back to the homepage.',
+  'Tell me about Nagendra.',
   'What technologies does he specialize in?',
-  'Why can accuracy be misleading in fraud detection?',
-  'What makes him suitable for an AI/ML Engineer role?',
   'How can I get in touch with Nagendra?',
 ];
 
@@ -855,7 +855,7 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
               {voice.messages.length === 1 && (
                 <div className="pt-2 space-y-2">
                   <div className="text-[11px] font-mono text-cyan-400/80 uppercase font-semibold">
-                    Suggested Questions:
+                    Suggested Voice Commands &amp; Inquiries:
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {INITIAL_SUGGESTIONS.map((suggestion, sIdx) => (

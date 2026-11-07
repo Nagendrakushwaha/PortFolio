@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { SceneType, MultiverseWorldId, ProjectData } from './types/portfolio';
 import { CosmicCanvas } from './components/cosmic/CosmicCanvas';
 import { WebGLFallback } from './components/cosmic/WebGLFallback';
@@ -227,21 +227,45 @@ export const App: React.FC = () => {
   const [hoveredWorld, setHoveredWorld] = useState<MultiverseWorldId | null>(null);
   const [globalModalProject, setGlobalModalProject] = useState<ProjectData | null>(null);
 
+  // Close project case study modal when requested by voice command
+  useEffect(() => {
+    const handleCloseModal = () => {
+      setGlobalModalProject(null);
+    };
+    window.addEventListener('close-project-modal', handleCloseModal);
+    return () => window.removeEventListener('close-project-modal', handleCloseModal);
+  }, []);
+
+  const highlightSection = (el: HTMLElement) => {
+    el.classList.remove('voice-nav-highlight');
+    // Force DOM reflow to retrigger animation
+    void el.offsetWidth;
+    el.classList.add('voice-nav-highlight');
+    setTimeout(() => {
+      el.classList.remove('voice-nav-highlight');
+    }, 2800);
+  };
+
   const scrollToSection = useCallback((id: string) => {
+    const targetId = id === 'home' ? 'hero' : id;
     if (activeScene !== 'laboratory') {
       setActiveScene('laboratory');
       const attemptScroll = (attemptsLeft: number) => {
-        const el = document.getElementById(id);
+        const el = document.getElementById(targetId);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth' });
+          highlightSection(el);
         } else if (attemptsLeft > 0) {
           setTimeout(() => attemptScroll(attemptsLeft - 1), 70);
         }
       };
       setTimeout(() => attemptScroll(6), 50);
     } else {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        highlightSection(el);
+      }
     }
   }, [activeScene]);
 
