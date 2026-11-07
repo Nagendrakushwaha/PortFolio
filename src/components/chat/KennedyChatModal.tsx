@@ -316,26 +316,51 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                 <h3 id="kennedy-title" className="text-sm font-display font-bold text-white tracking-wide flex items-center space-x-1.5">
                   <span>Mr. Kennedy</span>
                   <span
-                    className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono border ${
+                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono border ${
                       voice.isVoiceSessionActive
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                        : voice.isNeuralVoiceActive
+                        : voice.isOllamaActive
                         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                         : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     }`}
+                    title={
+                      voice.isOllamaActive
+                        ? 'Open-weight Qwen2.5 1.5B running on Ryzen 5 5500U CPU (Zero Paid API)'
+                        : 'Grounded RAG Knowledge Engine (Zero-Cost / Public Demo Mode)'
+                    }
                   >
-                    {voice.isVoiceSessionActive ? 'VOICE LIVE' : voice.isNeuralVoiceActive ? 'OPENAI REALTIME' : 'AI DIGITAL TWIN'}
+                    {voice.isVoiceSessionActive
+                      ? 'VOICE LIVE'
+                      : voice.isOllamaActive
+                      ? '🟢 QWEN2.5 1.5B (LOCAL)'
+                      : '📘 GROUNDED RAG'}
                   </span>
                 </h3>
               </div>
               <p className="text-[11px] font-mono text-slate-400">
-                Nagendra's AI Digital Twin &amp; Companion
+                {voice.isOllamaActive ? 'Local Open-Weight AI (Ryzen 5 5500U)' : "Nagendra's AI Digital Twin & Companion"}
               </p>
             </div>
           </div>
 
           {/* Header Controls */}
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1.5">
+            {/* Language Switcher (EN / HI) */}
+            <button
+              onClick={() => {
+                const nextLang = voice.voiceLanguage === 'hi' ? 'en' : 'hi';
+                voice.setVoiceLanguage(nextLang);
+              }}
+              className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-semibold transition-all ${
+                voice.voiceLanguage === 'hi'
+                  ? 'bg-amber-950/80 border-amber-500/70 text-amber-300 hover:bg-amber-900'
+                  : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
+              }`}
+              title="Toggle speech recognition & voice language (English / Hindi)"
+            >
+              {voice.voiceLanguage === 'hi' ? 'HI (हिन्दी)' : 'EN'}
+            </button>
+
             {/* Toggle Persistent Voice Session Mode */}
             <button
               onClick={() => {
@@ -761,7 +786,7 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                         </div>
                       )}
 
-                      {/* Message Timestamp & Audio Controls */}
+                      {/* Message Timestamp, Engine Metrics & Audio Controls */}
                       <div
                         className={`flex items-center justify-between text-[10px] mt-1.5 pt-1 border-t ${
                           isAssistant
@@ -769,7 +794,18 @@ export const KennedyChatModal: React.FC<KennedyChatModalProps> = ({
                             : 'border-white/10 text-cyan-200'
                         }`}
                       >
-                        <span>{msg.timestamp}</span>
+                        <div className="flex items-center space-x-1.5">
+                          <span>{msg.timestamp}</span>
+                          {isAssistant && msg.tokensPerSec ? (
+                            <span className="text-emerald-400 font-mono text-[9px] px-1 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/40">
+                              ⚡ {msg.tokensPerSec} tok/s
+                            </span>
+                          ) : isAssistant && msg.engine === 'grounded_knowledge_engine' ? (
+                            <span className="text-cyan-400/80 font-mono text-[9px] px-1 py-0.5 rounded bg-cyan-950/50">
+                              📘 Grounded RAG
+                            </span>
+                          ) : null}
+                        </div>
 
                         {isAssistant && !msg.isStreaming && (
                           <div className="flex items-center space-x-1.5 opacity-80 hover:opacity-100 transition-opacity">

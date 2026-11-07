@@ -5,7 +5,23 @@
  * Never exposes API keys or secrets on the frontend.
  */
 
+export interface OllamaModelInfo {
+  name: string;
+  sizeMb: number;
+  modifiedAt?: string;
+}
+
+export interface OllamaStatus {
+  available: boolean;
+  host: string;
+  configuredModel: string;
+  activeModel: string;
+  hasTargetModel: boolean;
+  models: OllamaModelInfo[];
+}
+
 export interface VoiceProviderStatus {
+  ollama?: OllamaStatus;
   openai: {
     available: boolean;
     realtimeAvailable: boolean;
@@ -18,6 +34,7 @@ export interface VoiceProviderStatus {
     supportedVoices: Array<{ id: string; name: string; gender: 'male' | 'female' | 'neutral'; description: string }>;
   };
   activeProvider: 'openai' | 'elevenlabs' | 'browser';
+  activeLLMProvider?: 'ollama' | 'openai' | 'grounded_knowledge_engine';
   activeVoice: string;
   isRealtimeCapable: boolean;
   knowledgeStats?: {
@@ -39,7 +56,14 @@ export interface RealtimeSessionResponse {
 
 export interface ChatStreamCallbacks {
   onToken: (token: string) => void;
-  onDone: (meta: { sources?: string[]; actions?: any[] }) => void;
+  onDone: (meta: {
+    sources?: string[];
+    actions?: any[];
+    engine?: string;
+    model?: string;
+    tokensPerSec?: number;
+    evalCount?: number;
+  }) => void;
   onError: (error: string) => void;
 }
 
@@ -114,6 +138,30 @@ export class VoiceServiceClient {
     })();
 
     return this.statusPromise;
+  }
+
+  /**
+   * Fetch current Ollama local status and installed open-weight models
+   */
+  public async getOllamaStatus(): Promise<OllamaStatus> {
+    try {
+      const res = await fetch('/api/ollama-status', {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('[VoiceService] /api/ollama-status error:', err);
+    }
+    return {
+      available: false,
+      host: 'http://127.0.0.1:11434',
+      configuredModel: 'qwen2.5:1.5b',
+      activeModel: 'qwen2.5:1.5b',
+      hasTargetModel: false,
+      models: [],
+    };
   }
 
   /**
@@ -277,7 +325,14 @@ export class VoiceServiceClient {
                   callbacks.onToken(parsed.token);
                 }
                 if (parsed.done) {
-                  callbacks.onDone({ sources: parsed.sources, actions: parsed.actions });
+                  callbacks.onDone({
+                    sources: parsed.sources,
+                    actions: parsed.actions,
+                    engine: parsed.engine,
+                    model: parsed.model,
+                    tokensPerSec: parsed.tokensPerSec,
+                    evalCount: parsed.evalCount,
+                  });
                   return;
                 }
               } catch {

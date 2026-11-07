@@ -77,6 +77,13 @@ export function useKennedyVoiceAssistant(_options: UseKennedyVoiceAssistantOptio
     isChatMinimized: ctx.isChatMinimized,
     setIsChatMinimized: ctx.setIsChatMinimized,
     handleActionClick: ctx.handleActionClick,
+
+    // Language & Open-Weight Engine Info
+    voiceLanguage: ctx.voiceLanguage,
+    setVoiceLanguage: ctx.setVoiceLanguage,
+    ollamaStatus: ctx.ollamaStatus,
+    isOllamaActive: ctx.isOllamaActive,
+    activeLLMEngine: ctx.activeLLMEngine,
   };
 }
 

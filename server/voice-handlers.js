@@ -64,6 +64,65 @@ export function sanitizeForSpeech(rawText) {
 }
 
 /**
+ * Query Ollama local server status and installed models
+ * Bypasses paid APIs and runs open-weight models (Qwen2.5 1.5B) locally
+ */
+export async function getOllamaStatus() {
+  const host = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
+  const configuredModel = process.env.OLLAMA_MODEL || 'qwen2.5:1.5b';
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 800);
+    const res = await fetch(`${host}/api/tags`, { signal: controller.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      return { available: false, host, configuredModel, activeModel: configuredModel, models: [] };
+    }
+
+    const data = await res.json();
+    const models = (data.models || []).map((m) => ({
+      name: m.name,
+      sizeMb: Math.round((m.size || 0) / (1024 * 1024)),
+      modifiedAt: m.modified_at,
+    }));
+
+    const hasTargetModel = models.some(
+      (m) => m.name.includes(configuredModel) || m.name.startsWith('qwen2.5')
+    );
+    const activeModel = hasTargetModel ? configuredModel : (models[0]?.name || configuredModel);
+
+    return {
+      available: true,
+      host,
+      configuredModel,
+      activeModel,
+      hasTargetModel,
+      models,
+    };
+  } catch {
+    return {
+      available: false,
+      host,
+      configuredModel,
+      activeModel: configuredModel,
+      hasTargetModel: false,
+      models: [],
+    };
+  }
+}
+
+/**
+ * Handle GET /api/ollama-status
+ */
+export async function handleOllamaStatus(req, res) {
+  const status = await getOllamaStatus();
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(status));
+}
+
+/**
  * Handle GET /api/voice-status
  */
 export async function handleVoiceStatus(req, res) {
@@ -72,12 +131,25 @@ export async function handleVoiceStatus(req, res) {
 
   const hasOpenAI = Boolean(openaiKey && openaiKey.startsWith('sk-'));
   const hasElevenLabs = Boolean(elevenKey && elevenKey.length > 10);
+  const ollama = await getOllamaStatus();
 
-  // Default to natural female voice 'shimmer' as requested
+  // Voice priority
   const defaultVoice = process.env.MR_KENNEDY_VOICE || (hasElevenLabs ? 'Rachel' : 'shimmer');
-  const activeProvider = hasOpenAI ? 'openai' : hasElevenLabs ? 'elevenlabs' : 'browser';
+  const activeVoiceProvider = hasOpenAI ? 'openai' : hasElevenLabs ? 'elevenlabs' : 'browser';
+  
+  // Prioritize open-weight Ollama over paid APIs
+  const activeLLMProvider = ollama.available
+    ? 'ollama'
+    : (hasOpenAI ? 'openai' : 'grounded_knowledge_engine');
 
   const status = {
+    ollama: {
+      available: ollama.available,
+      host: ollama.host,
+      model: ollama.activeModel,
+      models: ollama.models,
+      hasTargetModel: ollama.hasTargetModel,
+    },
     openai: {
       available: hasOpenAI,
       realtimeAvailable: hasOpenAI,
@@ -89,14 +161,15 @@ export async function handleVoiceStatus(req, res) {
       defaultVoice: 'Rachel',
       supportedVoices: ELEVENLABS_VOICES,
     },
-    activeProvider,
+    activeProvider: activeVoiceProvider,
+    activeLLMProvider,
     activeVoice: defaultVoice,
     isRealtimeCapable: hasOpenAI,
     knowledgeStats: knowledgeManager.listDocuments(),
-    message: hasOpenAI
+    message: ollama.available
+      ? `Local Ollama (${ollama.activeModel}) active on CPU threads with Grounded RAG Knowledge System.`
+      : hasOpenAI
       ? 'OpenAI Realtime & Neural Speech Engine active with RAG Knowledge System.'
-      : hasElevenLabs
-      ? 'ElevenLabs Neural Conversational Voice active with Grounded Knowledge System.'
       : 'Running in zero-credential client mode with grounded knowledge engine.',
   };
 
@@ -371,7 +444,8 @@ function extractChatActions(query = '', reply = '') {
 
 /**
  * Handle POST /api/chat
- * Real OpenAI Chat Completions with SSE Streaming support & dynamic RAG grounding
+ * Prioritizes local open-weight Ollama model (Qwen2.5 1.5B) on Ryzen CPU.
+ * Falls back to Grounded RAG Knowledge Engine with zero paid API requirements.
  */
 export async function handleChat(req, res, body = {}) {
   const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
@@ -381,7 +455,6 @@ export async function handleChat(req, res, body = {}) {
     return res.end(JSON.stringify({ error: 'Too many requests. Please wait a moment before sending another question.' }));
   }
 
-  const openaiKey = process.env.OPENAI_API_KEY || '';
   const message = (body.message || '').trim();
   const history = Array.isArray(body.history) ? body.history : [];
   const wantStream = Boolean(body.stream !== false);
@@ -397,150 +470,176 @@ export async function handleChat(req, res, body = {}) {
   const augmentedSystemPrompt = await knowledgeManager.buildAugmentedPrompt(message);
   const sources = relevantChunks.map((c) => c.title);
 
-  // 2. Fallback mode if OPENAI_API_KEY is not configured
-  if (!openaiKey) {
-    const fallbackAnswer = generateGroundedFallback(message, relevantChunks);
-    const actions = extractChatActions(message, fallbackAnswer);
+  // 2. Check Local Ollama Engine (Open-Weight / Zero-API-Cost)
+  const ollama = await getOllamaStatus();
+
+  if (ollama.available) {
+    const formattedMessages = [
+      { role: 'system', content: augmentedSystemPrompt },
+      ...history.slice(-6).map((m) => ({
+        role: m.sender === 'assistant' ? 'assistant' : 'user',
+        content: m.text,
+      })),
+      { role: 'user', content: message },
+    ];
 
     if (wantStream) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      // Stream tokens cleanly
-      const words = fallbackAnswer.split(' ');
-      for (let i = 0; i < words.length; i++) {
-        const token = (i === 0 ? '' : ' ') + words[i];
-        res.write(`data: ${JSON.stringify({ token })}\n\n`);
-        await new Promise((resolve) => setTimeout(resolve, 20));
+      try {
+        const ollamaRes = await fetch(`${ollama.host}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: ollama.activeModel,
+            messages: formattedMessages,
+            stream: true,
+            options: {
+              temperature: 0.6,
+              num_predict: 450,
+            },
+          }),
+        });
+
+        if (!ollamaRes.ok) {
+          throw new Error(`Ollama returned status ${ollamaRes.status}`);
+        }
+
+        let accumulated = '';
+        let evalCount = 0;
+        let evalDuration = 0;
+        const reader = ollamaRes.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunkText = decoder.decode(value, { stream: true });
+          const lines = chunkText.split('\n');
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            try {
+              const json = JSON.parse(trimmed);
+              if (json.message?.content) {
+                accumulated += json.message.content;
+                res.write(`data: ${JSON.stringify({ token: json.message.content })}\n\n`);
+              }
+              if (json.done) {
+                evalCount = json.eval_count || 0;
+                evalDuration = json.eval_duration || 0;
+              }
+            } catch {}
+          }
+        }
+
+        const evalDurationSec = evalDuration / 1e9;
+        const tokensPerSec = evalDurationSec > 0 ? Number((evalCount / evalDurationSec).toFixed(1)) : 0;
+        const actions = extractChatActions(message, accumulated);
+
+        res.write(
+          `data: ${JSON.stringify({
+            done: true,
+            sources,
+            actions,
+            engine: 'ollama',
+            model: ollama.activeModel,
+            tokensPerSec,
+            evalCount,
+          })}\n\n`
+        );
+        return res.end();
+      } catch (ollamaErr) {
+        console.warn('[VoiceBackend] Ollama streaming error, falling back to grounded knowledge:', ollamaErr.message);
+        // Fall through to Grounded Knowledge Engine fallback
       }
-      res.write(`data: ${JSON.stringify({ done: true, sources, actions })}\n\n`);
-      return res.end();
     } else {
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json');
-      return res.end(JSON.stringify({ text: fallbackAnswer, sources, actions, provider: 'grounded_knowledge_engine' }));
+      // Non-streaming Ollama
+      try {
+        const ollamaRes = await fetch(`${ollama.host}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: ollama.activeModel,
+            messages: formattedMessages,
+            stream: false,
+            options: {
+              temperature: 0.6,
+              num_predict: 450,
+            },
+          }),
+        });
+
+        if (ollamaRes.ok) {
+          const data = await ollamaRes.json();
+          const reply = data.message?.content || '';
+          const evalCount = data.eval_count || 0;
+          const evalDurationSec = (data.eval_duration || 0) / 1e9;
+          const tokensPerSec = evalDurationSec > 0 ? Number((evalCount / evalDurationSec).toFixed(1)) : 0;
+          const actions = extractChatActions(message, reply);
+
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(
+            JSON.stringify({
+              text: reply,
+              sources,
+              actions,
+              engine: 'ollama',
+              model: ollama.activeModel,
+              tokensPerSec,
+              evalCount,
+            })
+          );
+        }
+      } catch (ollamaErr) {
+        console.warn('[VoiceBackend] Ollama non-streaming error, falling back:', ollamaErr.message);
+      }
     }
   }
 
-  // 3. Format OpenAI Messages with Rolling Context Window
-  const formattedMessages = [
-    { role: 'system', content: augmentedSystemPrompt },
-    ...history.slice(-8).map((m) => ({
-      role: m.sender === 'assistant' ? 'assistant' : 'user',
-      content: m.text,
-    })),
-    { role: 'user', content: message },
-  ];
+  // 3. Fallback to Grounded RAG Knowledge Engine (100% free, zero credentials required, instant on Vercel/cloud)
+  const fallbackAnswer = generateGroundedFallback(message, relevantChunks);
+  const actions = extractChatActions(message, fallbackAnswer);
 
-  const model = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
-
-  // 4. Handle Streaming Response via SSE
   if (wantStream) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    try {
-      const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          messages: formattedMessages,
-          temperature: 0.6,
-          max_tokens: 600,
-          stream: true,
-        }),
-      });
-
-      if (!oaiRes.ok) {
-        const errJson = await oaiRes.json().catch(() => ({}));
-        res.write(`data: ${JSON.stringify({ error: errJson.error?.message || 'OpenAI API error' })}\n\n`);
-        return res.end();
-      }
-
-      let accumulated = '';
-      const reader = oaiRes.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunkText = decoder.decode(value, { stream: true });
-        const lines = chunkText.split('\n');
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('data: ')) {
-            const dataStr = trimmed.slice(6);
-            if (dataStr === '[DONE]') {
-              const actions = extractChatActions(message, accumulated);
-              res.write(`data: ${JSON.stringify({ done: true, sources, actions })}\n\n`);
-              return res.end();
-            }
-            try {
-              const json = JSON.parse(dataStr);
-              const delta = json.choices?.[0]?.delta?.content || '';
-              if (delta) {
-                accumulated += delta;
-                res.write(`data: ${JSON.stringify({ token: delta })}\n\n`);
-              }
-            } catch {
-              // Ignore non-json lines
-            }
-          }
-        }
-      }
-
-      const actions = extractChatActions(message, accumulated);
-      res.write(`data: ${JSON.stringify({ done: true, sources, actions })}\n\n`);
-      res.end();
-    } catch (err) {
-      console.error('[VoiceBackend] Streaming chat error:', err);
-      res.write(`data: ${JSON.stringify({ error: err.message || 'Stream connection error' })}\n\n`);
-      res.end();
+    // Stream tokens cleanly
+    const words = fallbackAnswer.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      const token = (i === 0 ? '' : ' ') + words[i];
+      res.write(`data: ${JSON.stringify({ token })}\n\n`);
+      await new Promise((resolve) => setTimeout(resolve, 18));
     }
+    res.write(
+      `data: ${JSON.stringify({
+        done: true,
+        sources,
+        actions,
+        engine: 'grounded_knowledge_engine',
+        model: 'Grounded RAG Knowledge Engine (Zero-Cost / Public Demo)',
+      })}\n\n`
+    );
+    return res.end();
   } else {
-    // 5. Non-streaming JSON response
-    try {
-      const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          messages: formattedMessages,
-          temperature: 0.6,
-          max_tokens: 600,
-        }),
-      });
-
-      const data = await oaiRes.json();
-      if (!oaiRes.ok) {
-        res.statusCode = oaiRes.status;
-        res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ error: data.error?.message || 'Chat completion error' }));
-      }
-
-      const reply = data.choices?.[0]?.message?.content || '';
-      const actions = extractChatActions(message, reply);
-
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ text: reply, sources, actions, model }));
-    } catch (err) {
-      console.error('[VoiceBackend] Non-streaming chat error:', err);
-      res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: err.message || 'Internal chat error' }));
-    }
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(
+      JSON.stringify({
+        text: fallbackAnswer,
+        sources,
+        actions,
+        engine: 'grounded_knowledge_engine',
+        model: 'Grounded RAG Knowledge Engine (Zero-Cost / Public Demo)',
+      })
+    );
   }
 }
 

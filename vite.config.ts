@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
             try {
               const {
                 handleVoiceStatus,
+                handleOllamaStatus,
                 handleRealtimeSession,
                 handleTTS,
                 handleSTT,
@@ -33,6 +34,10 @@ export default defineConfig(({ mode }) => {
 
               if (url.pathname === '/api/voice-status' && req.method === 'GET') {
                 return await handleVoiceStatus(req, res)
+              }
+
+              if (url.pathname === '/api/ollama-status' && req.method === 'GET') {
+                return await handleOllamaStatus(req, res)
               }
 
               let body = {}

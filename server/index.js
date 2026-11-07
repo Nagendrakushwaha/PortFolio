@@ -6,6 +6,7 @@
 import http from 'http';
 import {
   handleVoiceStatus,
+  handleOllamaStatus,
   handleRealtimeSession,
   handleTTS,
   handleSTT,
@@ -59,6 +60,10 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname === '/api/voice-status' && req.method === 'GET') {
       return await handleVoiceStatus(req, res);
+    }
+
+    if (url.pathname === '/api/ollama-status' && req.method === 'GET') {
+      return await handleOllamaStatus(req, res);
     }
 
     if (url.pathname === '/api/realtime-session' && req.method === 'POST') {

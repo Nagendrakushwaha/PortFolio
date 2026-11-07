@@ -6,6 +6,7 @@
 
 import {
   handleVoiceStatus,
+  handleOllamaStatus,
   handleChat,
   handleKnowledgeList,
   handleKnowledgeUpload,
@@ -65,6 +66,17 @@ async function runTests() {
 
     assert(data.activeVoice === 'shimmer' || data.activeVoice === 'Rachel', 'Voice status returns natural female voice default');
     assert(data.knowledgeStats && data.knowledgeStats.totalChunks > 0, 'Voice status reports indexed knowledge chunks');
+  }
+
+  // TEST 1B: Ollama Status Endpoint
+  {
+    const req = { headers: {} };
+    const res = new MockResponse();
+    await handleOllamaStatus(req, res);
+    const data = JSON.parse(res.body);
+
+    assert(typeof data.available === 'boolean', 'Ollama status returns boolean availability without throwing');
+    assert(data.configuredModel === 'qwen2.5:1.5b', 'Ollama status defaults to open-weight Qwen2.5 1.5B');
   }
 
   // TEST 2: Knowledge Retrieval (RAG)

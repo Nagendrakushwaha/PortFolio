@@ -27,6 +27,9 @@ export interface ChatMessage {
   actions?: ChatAction[];
   sources?: string[];
   isStreaming?: boolean;
+  engine?: string;
+  model?: string;
+  tokensPerSec?: number;
 }
 
 export interface VoiceOption {
@@ -47,6 +50,13 @@ export interface KennedyVoiceContextType {
   toggleChat: () => void;
   isChatMinimized: boolean;
   setIsChatMinimized: (min: boolean) => void;
+
+  // Language & Open-Weight Engine Info
+  voiceLanguage: 'auto' | 'en' | 'hi';
+  setVoiceLanguage: (lang: 'auto' | 'en' | 'hi') => void;
+  ollamaStatus: any;
+  isOllamaActive: boolean;
+  activeLLMEngine: string;
 
   // Voice Session State Machine
   isVoiceSessionActive: boolean;
@@ -175,10 +185,13 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
 
   // 4. Voice Output Configuration
   const [isVoiceOutputEnabled, setIsVoiceOutputEnabled] = useState<boolean>(true);
+  const [voiceLanguage, setVoiceLanguage] = useState<'auto' | 'en' | 'hi'>('auto');
+  const [ollamaStatus, setOllamaStatus] = useState<any>(null);
+  const [activeLLMEngine, setActiveLLMEngine] = useState<string>('Detecting AI Engine...');
   const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('shimmer');
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
-  const [activeProvider, setActiveProvider] = useState<'openai' | 'elevenlabs' | 'browser'>('openai');
+  const [activeProvider, setActiveProvider] = useState<'openai' | 'elevenlabs' | 'browser'>('browser');
   const [isNeuralVoiceActive, setIsNeuralVoiceActive] = useState<boolean>(false);
   const [speechRate, setSpeechRate] = useState<number>(1.0);
   const [speechPitch, setSpeechPitch] = useState<number>(1.0);
@@ -242,10 +255,17 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
   const populateVoices = useCallback(async () => {
     const list: VoiceOption[] = [];
 
-    // 1. Fetch AI Voice Provider Status from Backend
+    // 1. Fetch AI Provider Status from Backend (Ollama / Open-Weights / TTS)
     try {
       const status = await voiceService.getVoiceStatus();
-      logDiag('Init', 'Backend voice status retrieved:', status);
+      logDiag('Init', 'Backend voice & AI status retrieved:', status);
+
+      if (status.ollama?.available) {
+        setOllamaStatus(status.ollama);
+        setActiveLLMEngine(`Qwen2.5 1.5B (Local Ollama)`);
+      } else {
+        setActiveLLMEngine('Grounded Knowledge Engine (Demo Mode)');
+      }
 
       if (status.openai?.supportedVoices) {
         status.openai.supportedVoices.forEach((v) => {
@@ -282,14 +302,15 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       }
     } catch (err) {
       logDiag('Init', 'Failed to fetch backend voice status, proceeding with browser fallback:', err);
+      setActiveLLMEngine('Grounded Knowledge Engine (Client Mode)');
     }
 
-    // 2. Add Browser Speech Synthesis Voices as Fallback Options
+    // 2. Add Browser Speech Synthesis Voices (English + Hindi Support)
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       const browserVoices = window.speechSynthesis.getVoices();
       const maleKeywords = [
         'david', 'mark', 'george', 'james', 'daniel', 'alex', 'fred', 'oliver',
-        'arthur', 'rishi', 'guy', 'male', 'richard', 'thomas', 'brian', 'steven', 'tom'
+        'arthur', 'rishi', 'guy', 'male', 'richard', 'thomas', 'brian', 'steven', 'tom', 'hemant'
       ];
 
       browserVoices.forEach((v) => {
@@ -297,13 +318,16 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         let gender: 'male' | 'female' | 'neutral' = 'neutral';
         if (maleKeywords.some((kw) => nameLower.includes(kw)) || (nameLower.includes('male') && !nameLower.includes('female'))) {
           gender = 'male';
-        } else if (nameLower.includes('female')) {
+        } else if (nameLower.includes('female') || nameLower.includes('kalpana') || nameLower.includes('zira')) {
           gender = 'female';
         }
 
+        const isHindi = v.lang.startsWith('hi') || nameLower.includes('hindi');
+        const langTag = isHindi ? ' [Hindi / हिन्दी]' : ` (${v.lang})`;
+
         list.push({
           id: `browser:${v.name}`,
-          displayName: `[Standard] ${v.name} (${v.lang})${gender === 'male' ? ' — Male' : ''}`,
+          displayName: `[Standard] ${v.name}${langTag}${gender === 'male' ? ' — Male' : ''}`,
           gender,
           lang: v.lang,
           isNeural: false,
@@ -542,6 +566,11 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       return;
     }
 
+    // Interrupt assistant if it was speaking (Voice Barge-In)
+    if (isSpeakingRef.current) {
+      stopSpeaking();
+    }
+
     try {
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch {}
@@ -551,7 +580,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
       const recognition = new SpeechRecognitionClass();
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.lang = voiceLanguage === 'hi' ? 'hi-IN' : 'en-IN';
 
       recognition.onstart = () => {
         logDiag('STT', 'SpeechRecognition onstart fired. State -> listening');
@@ -762,13 +791,25 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
         }
       }
 
-      // STEP B: Fallback to Browser SpeechSynthesis if Neural Voice unavailable
+      // STEP B: Fallback to Browser SpeechSynthesis if Neural Voice unavailable (English + Hindi Support)
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        logDiag('TTS', 'Executing browser speech synthesis fallback.');
+        logDiag('TTS', 'Executing browser speech synthesis.');
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        if (selectedVoice) {
+
+        const isHindi = /[\u0900-\u097F]/.test(cleanText) || voiceLanguage === 'hi';
+        if (isHindi) {
+          const hindiVoice = availableVoices.find((v) => v.lang.startsWith('hi') && v.voice)?.voice;
+          if (hindiVoice) {
+            utterance.voice = hindiVoice;
+            utterance.lang = 'hi-IN';
+          } else {
+            utterance.lang = 'hi-IN';
+          }
+        } else if (selectedVoice) {
           utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang || 'en-US';
         }
+
         utterance.rate = speechRate;
         utterance.pitch = speechPitch;
         utterance.volume = 1.0;
@@ -913,7 +954,7 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
                 prev.map((m) => (m.id === assistantMsgId ? { ...m, text: accumulatedText } : m))
               );
             },
-            onDone: async ({ sources, actions }) => {
+            onDone: async ({ sources, actions, engine, model, tokensPerSec }) => {
               if (generationAbortRef.current || streamFinished) return;
               streamFinished = true;
               currentAbortRef.current = null;
@@ -922,7 +963,16 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantMsgId
-                    ? { ...m, text: accumulatedText, isStreaming: false, sources, actions }
+                    ? {
+                        ...m,
+                        text: accumulatedText,
+                        isStreaming: false,
+                        sources,
+                        actions,
+                        engine: engine || 'grounded_knowledge_engine',
+                        model,
+                        tokensPerSec,
+                      }
                     : m
                 )
               );
@@ -945,6 +995,8 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
                         isStreaming: false,
                         sources: fallbackResponse.sources,
                         actions: fallbackResponse.actions,
+                        engine: 'grounded_knowledge_engine',
+                        model: 'Grounded RAG Knowledge Engine (Zero-Cost / Public Demo)',
                       }
                     : m
                 )
@@ -1136,6 +1188,13 @@ export const KennedyVoiceProvider: React.FC<KennedyVoiceProviderProps> = ({
     toggleChat: () => setIsChatOpen((prev) => !prev),
     isChatMinimized,
     setIsChatMinimized,
+
+    // Language & Open-Weight Engine Info
+    voiceLanguage,
+    setVoiceLanguage,
+    ollamaStatus,
+    isOllamaActive: Boolean(ollamaStatus?.available),
+    activeLLMEngine,
 
     isVoiceSessionActive,
     assistantState,
