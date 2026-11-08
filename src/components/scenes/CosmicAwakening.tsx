@@ -68,7 +68,7 @@ export const CosmicAwakening: React.FC<CosmicAwakeningProps> = ({
         <div className="flex items-center space-x-3 group">
           <div className="relative w-11 h-11 rounded-2xl glass-panel border border-cyan-400/40 shadow-glow-cyan flex items-center justify-center p-2 bg-black/70 group-hover:border-cyan-300 transition-all duration-300">
             <img 
-              src="/favicon.svg" 
+              src="/logo-square.png" 
               alt="Nagendra Kushwaha Logo" 
               className="w-full h-full object-contain filter drop-shadow group-hover:scale-110 transition-transform duration-300" 
             />

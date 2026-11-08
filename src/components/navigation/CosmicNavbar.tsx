@@ -69,9 +69,13 @@ export const CosmicNavbar: React.FC<CosmicNavbarProps> = ({
           }`}
           title="Return to Cosmic Awakening"
         >
-          <div className="relative w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-md">
-            <Sparkles className="w-4 h-4 text-white group-hover:rotate-12 transition-transform duration-300" />
-            <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-cyan-400" />
+          <div className="relative w-8 h-8 rounded-xl bg-black/70 border border-cyan-400/40 p-1 flex items-center justify-center shadow-md group-hover:border-cyan-300 transition-colors">
+            <img 
+              src="/logo-square.png" 
+              alt="Nagendra Kushwaha Logo" 
+              className="w-full h-full object-contain filter drop-shadow group-hover:scale-110 transition-transform duration-300" 
+            />
+            <div className="absolute inset-0 rounded-xl animate-ping opacity-20 bg-cyan-400 pointer-events-none" />
           </div>
           <div className="text-left">
             <span className={`block text-xs font-mono tracking-wider font-bold uppercase ${
